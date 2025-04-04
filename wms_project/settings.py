@@ -71,7 +71,8 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # ✅ Fixed language setting to avoid NoReverseMatch error in Django 5.2
-LANGUAGE_CODE = 'en'
+LANGUAGE_CODE = 'en-us'
+
 
 TIME_ZONE = 'UTC'
 USE_I18N = True
