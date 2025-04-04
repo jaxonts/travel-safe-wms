@@ -1,7 +1,8 @@
 Django>=5.2
 djangorestframework
 gunicorn
-Jazzmin>=2.6.0
+django-jazzmin
+
 
 
 
