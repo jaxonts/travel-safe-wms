@@ -24,7 +24,8 @@ SECRET_KEY = 'django-insecure-3jg^20w1f=-ks%&)%ksz8)icft!!b-kwh!-5_6=ua_txt3j%*@
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['travel-safe-wms.onrender.com', 'wms.travelsafe.net']
+
 
 # Application definition
 
