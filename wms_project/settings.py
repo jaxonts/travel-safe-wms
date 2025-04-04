@@ -70,7 +70,9 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-LANGUAGE_CODE = 'en-us'
+# ✅ Fixed language setting to avoid NoReverseMatch error in Django 5.2
+LANGUAGE_CODE = 'en'
+
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
@@ -109,6 +111,7 @@ JAZZMIN_SETTINGS = {
         "inventory.InventoryMovement": "fas fa-dolly",
     },
     "show_ui_builder": False,
-    "dark_mode_theme": None
+    "dark_mode_theme": None,
+    "language_chooser": False,
 }
-JAZZMIN_SETTINGS["language_chooser"] = False
+
