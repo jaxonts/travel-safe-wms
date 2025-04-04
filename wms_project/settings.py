@@ -111,3 +111,4 @@ JAZZMIN_SETTINGS = {
     "show_ui_builder": False,
     "dark_mode_theme": None
 }
+JAZZMIN_SETTINGS["language_chooser"] = False
