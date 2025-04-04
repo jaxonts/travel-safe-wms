@@ -1,6 +1,6 @@
 Django>=5.2
 djangorestframework
 gunicorn
-jazzmin==2.5.0
+django-jazzmin
 whitenoise
 
