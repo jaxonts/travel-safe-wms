@@ -11,7 +11,7 @@ ALLOWED_HOSTS = [
     "127.0.0.1",
     "localhost",
     "travel-safe-wms.onrender.com",
-    "wms.travelsafe.net",  # ✅ Custom domain
+    "wms.travelsafe.net",  # ✅ Your custom domain
 ]
 
 # Application definition
@@ -29,7 +29,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # ✅ Static file serving for Render
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -43,7 +43,7 @@ ROOT_URLCONF = 'wms_project.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / "templates"],  # ✅ Needed for custom login.html
+        'DIRS': [BASE_DIR / "templates"],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -77,21 +77,21 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# Static files (local & production)
+# Static files config
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# REST Framework config
+# REST framework config
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
     ]
 }
 
-# Jazzmin configuration
+# Jazzmin settings
 JAZZMIN_SETTINGS = {
     "site_title": "Travel Safe Admin",
     "site_header": "Travel Safe WMS",
@@ -116,8 +116,6 @@ JAZZMIN_SETTINGS = {
     "language_chooser": False,
 }
 
-# Authentication redirects
-LOGIN_REDIRECT_URL = '/admin/'                  # ✅ After login
-LOGOUT_REDIRECT_URL = '/accounts/login/'       # ✅ After logout
-LOGIN_URL = '/accounts/login/'                 # ✅ Ensures @login_required uses correct URL
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# Login/Logout redirects
+LOGIN_REDIRECT_URL = '/admin/'
+LOGOUT_REDIRECT_URL = '/accounts/login/'
