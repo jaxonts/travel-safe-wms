@@ -1,0 +1,43 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Employee Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="bg-white p-8 rounded shadow-md w-full max-w-md text-center">
+        <!-- Logo -->
+        <img src="{% static 'img/travel_safe_logo.png' %}" alt="Travel Safe Logo" class="mx-auto mb-4 w-32 h-auto">
+
+        <!-- Title -->
+        <h2 class="text-xl font-semibold mb-6">Employee Login</h2>
+
+        <!-- Error messages -->
+        {% if form.errors %}
+            <div class="mb-4 text-red-600 text-sm">
+                Please check your username and password.
+            </div>
+        {% endif %}
+
+        <!-- Login Form -->
+        <form method="post" class="text-left">
+            {% csrf_token %}
+            <div class="mb-4">
+                {{ form.username.label_tag }}
+                {{ form.username|add_class:"w-full border border-gray-300 p-2 rounded mt-1" }}
+            </div>
+            <div class="mb-6">
+                {{ form.password.label_tag }}
+                {{ form.password|add_class:"w-full border border-gray-300 p-2 rounded mt-1" }}
+            </div>
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded">
+                Login
+            </button>
+        </form>
+
+        <!-- Optional: Forgot password link -->
+        <div class="mt-4 text-sm">
+            <a href
+

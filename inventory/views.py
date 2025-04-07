@@ -17,16 +17,9 @@ class ItemViewSet(viewsets.ModelViewSet):
 class InventoryMovementViewSet(viewsets.ModelViewSet):
     queryset = InventoryMovement.objects.all()
     serializer_class = InventoryMovementSerializer
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from .views import LocationViewSet, BinViewSet, ItemViewSet, InventoryMovementViewSet
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
 
-router = DefaultRouter()
-router.register(r'locations', LocationViewSet)
-router.register(r'bins', BinViewSet)
-router.register(r'items', ItemViewSet)
-router.register(r'movements', InventoryMovementViewSet)
-
-urlpatterns = [
-    path('', include(router.urls)),
-]
+@login_required
+def dashboard(request):
+    return render(request, 'dashboard.html')
