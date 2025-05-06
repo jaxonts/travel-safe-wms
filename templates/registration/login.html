@@ -1,4 +1,5 @@
 {% load static %}
+{% load widget_tweaks %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -39,5 +40,8 @@
 
         <!-- Optional: Forgot password link -->
         <div class="mt-4 text-sm">
-            <a href
-
+            <a href="{% url 'password_reset' %}" class="text-blue-600 hover:underline">Forgot your password?</a>
+        </div>
+    </div>
+</body>
+</html>

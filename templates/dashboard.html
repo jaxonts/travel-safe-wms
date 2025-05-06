@@ -4,38 +4,105 @@
 <head>
     <meta charset="UTF-8">
     <title>Travel Safe Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Jazzmin/AdminLTE styles -->
+    <link rel="stylesheet" href="{% static 'vendor/fontawesome-free/css/all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'vendor/adminlte/css/adminlte.min.css' %}">
+    <link rel="stylesheet" href="{% static 'admin/css/base.css' %}">
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center">
-    <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-xl text-center">
-        <!-- Logo -->
-        <img src="{% static 'img/travel_safe_logo.png' %}" alt="Travel Safe Logo" class="mx-auto mb-6 w-40 h-auto">
+<body class="hold-transition sidebar-mini layout-fixed">
+<div class="wrapper">
 
-        <!-- Welcome message -->
-        <h1 class="text-3xl font-bold mb-2">Welcome to Travel Safe</h1>
-        <p class="text-gray-600 mb-6">You are now logged in.</p>
+    <!-- Navbar -->
+    <nav class="main-header navbar navbar-expand navbar-white navbar-light">
+        <ul class="navbar-nav">
+            <li class="nav-item">
+                <a class="nav-link font-weight-bold">Travel Safe WMS</a>
+            </li>
+        </ul>
+    </nav>
 
-        <!-- Dashboard buttons -->
-        <div class="grid grid-cols-2 gap-4 mb-6">
-            <a href="/admin/" class="bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-lg font-semibold">
-                ⚙️ Admin Panel
-            </a>
-            <a href="/api/locations/" class="bg-green-600 hover:bg-green-700 text-white p-4 rounded-lg font-semibold">
-                📍 View Locations
-            </a>
-            <a href="/api/bins/" class="bg-purple-600 hover:bg-purple-700 text-white p-4 rounded-lg font-semibold">
-                📦 View Bins
-            </a>
-            <a href="/api/items/" class="bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-lg font-semibold">
-                📋 View Items
-            </a>
+    <!-- Main content -->
+    <div class="content-wrapper pt-4 px-4">
+        <div class="container-fluid">
+
+            <!-- Logo -->
+            <div class="text-center mb-4">
+                <img src="{% static 'img/travel_safe_logo.png' %}" alt="Travel Safe Logo" width="200">
+            </div>
+
+            <!-- Welcome -->
+            <h1 class="text-center mb-4">Welcome, {{ user.username }} 👋</h1>
+
+            <!-- Dashboard Boxes -->
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="small-box bg-info">
+                        <div class="inner">
+                            <h3>Items</h3>
+                            <p>View Items</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-boxes"></i>
+                        </div>
+                        <a href="/api/items/" class="small-box-footer">View <i class="fas fa-arrow-circle-right"></i></a>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="small-box bg-success">
+                        <div class="inner">
+                            <h3>Locations</h3>
+                            <p>View Locations</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </div>
+                        <a href="/api/locations/" class="small-box-footer">View <i class="fas fa-arrow-circle-right"></i></a>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="small-box bg-purple">
+                        <div class="inner">
+                            <h3>Bins</h3>
+                            <p>View Bins</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-box-open"></i>
+                        </div>
+                        <a href="/api/bins/" class="small-box-footer">View <i class="fas fa-arrow-circle-right"></i></a>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="small-box bg-secondary">
+                        <div class="inner">
+                            <h3>Admin</h3>
+                            <p>Access Admin</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-cog"></i>
+                        </div>
+                        <a href="/admin/" class="small-box-footer">Go <i class="fas fa-arrow-circle-right"></i></a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logout -->
+            <div class="text-center mt-4">
+                <form action="/accounts/logout/" method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger btn-sm">Logout</button>
+                </form>
+            </div>
+
         </div>
-
-        <!-- Logout -->
-        <form action="/accounts/logout/" method="post">
-            {% csrf_token %}
-            <button type="submit" class="text-sm text-red-600 hover:underline">Logout</button>
-        </form>
     </div>
+</div>
+
+<!-- Scripts -->
+<script src="{% static 'vendor/adminlte/plugins/jquery/jquery.min.js' %}"></script>
+<script src="{% static 'vendor/adminlte/js/adminlte.min.js' %}"></script>
 </body>
 </html>

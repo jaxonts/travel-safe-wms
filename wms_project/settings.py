@@ -4,17 +4,18 @@ import os
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'django-insecure-3jg^20w1f=-ks%&)%ksz8)icft!!b-kwh!-5_6=ua_txt3j%*@'
-
 DEBUG = True
 
 ALLOWED_HOSTS = [
     "127.0.0.1",
     "localhost",
     "travel-safe-wms.onrender.com",
-    "wms.travelsafe.net",  # ✅ Your custom domain
+    "wms.travelsafe.net",
 ]
 
-# Application definition
+# ----------------------------
+# Installed apps
+# ----------------------------
 INSTALLED_APPS = [
     'jazzmin',
     'django.contrib.admin',
@@ -25,8 +26,12 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'inventory',
     'rest_framework',
+    'widget_tweaks',  # ✅ Required for 'add_class' in templates
 ]
 
+# ----------------------------
+# Middleware
+# ----------------------------
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
@@ -40,6 +45,9 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'wms_project.urls'
 
+# ----------------------------
+# Templates
+# ----------------------------
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -58,6 +66,9 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'wms_project.wsgi.application'
 
+# ----------------------------
+# Database
+# ----------------------------
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -65,6 +76,9 @@ DATABASES = {
     }
 }
 
+# ----------------------------
+# Password validation
+# ----------------------------
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
@@ -72,31 +86,40 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
+# ----------------------------
+# Internationalization
+# ----------------------------
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# Static files config
+# ----------------------------
+# Static files
+# ----------------------------
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# REST framework config
+# ----------------------------
+# Django REST Framework
+# ----------------------------
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
     ]
 }
 
-# Jazzmin settings
+# ----------------------------
+# Jazzmin Admin Customization
+# ----------------------------
 JAZZMIN_SETTINGS = {
     "site_title": "Travel Safe Admin",
     "site_header": "Travel Safe WMS",
     "site_brand": "Travel Safe",
-    "site_logo": "travel_safe_logo.png",
+    "site_logo": "img/travel_safe_logo.png",
     "welcome_sign": "Welcome to Travel Safe Admin Portal",
     "copyright": "Travel Safe",
     "search_model": "auth.User",
@@ -116,6 +139,8 @@ JAZZMIN_SETTINGS = {
     "language_chooser": False,
 }
 
-# Login/Logout redirects
+# ----------------------------
+# Authentication redirects
+# ----------------------------
 LOGIN_REDIRECT_URL = '/admin/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
