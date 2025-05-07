@@ -1,10 +1,12 @@
 from rest_framework import viewsets
-from .models import Location, Bin, Item, InventoryMovement
-from .serializers import LocationSerializer, BinSerializer, ItemSerializer, InventoryMovementSerializer
+from .models import Source, Bin, Item, InventoryMovement
+from .serializers import SourceSerializer, BinSerializer, ItemSerializer, InventoryMovementSerializer
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
 
-class LocationViewSet(viewsets.ModelViewSet):
-    queryset = Location.objects.all()
-    serializer_class = LocationSerializer
+class SourceViewSet(viewsets.ModelViewSet):
+    queryset = Source.objects.all()
+    serializer_class = SourceSerializer
 
 class BinViewSet(viewsets.ModelViewSet):
     queryset = Bin.objects.all()
@@ -17,8 +19,6 @@ class ItemViewSet(viewsets.ModelViewSet):
 class InventoryMovementViewSet(viewsets.ModelViewSet):
     queryset = InventoryMovement.objects.all()
     serializer_class = InventoryMovementSerializer
-from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
 
 @login_required
 def dashboard(request):

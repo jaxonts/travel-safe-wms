@@ -4,23 +4,19 @@ from django.db import models
 from django.contrib.auth.models import User
 
 class Source(models.Model):
-    name = models.CharField(max_length=100, verbose_name="Source Name")
-    address = models.TextField(blank=True, verbose_name="Source Address")
-    is_main_facility = models.BooleanField(default=False, verbose_name="Main Source")
-
-    class Meta:
-        verbose_name = "Source"
-        verbose_name_plural = "Sources"
+    name = models.CharField(max_length=100)
+    address = models.TextField(blank=True)
+    is_main_facility = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name
 
 class Bin(models.Model):
     code = models.CharField(max_length=100, unique=True)
-    source = models.ForeignKey(Source, on_delete=models.CASCADE)
+    location = models.ForeignKey(Source, on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"{self.source.name} - Bin {self.code}"
+        return f"{self.location.name} - Bin {self.code}"
 
 class Item(models.Model):
     name = models.CharField(max_length=255)

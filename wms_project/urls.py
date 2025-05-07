@@ -8,28 +8,26 @@ from django.views.generic import TemplateView
 
 # Views from inventory
 from inventory.views import (
-    LocationViewSet,
+    SourceViewSet,
     BinViewSet,
     ItemViewSet,
     InventoryMovementViewSet,
-    dashboard,  # Optional homepage view
+    dashboard,
 )
 
 # DRF API router
 router = DefaultRouter()
-router.register(r'locations', LocationViewSet)
+router.register(r'sources', SourceViewSet)
 router.register(r'bins', BinViewSet)
 router.register(r'items', ItemViewSet)
-router.register(r'movements', InventoryMovementViewSet)  # ✅ This was broken before
+router.register(r'movements', InventoryMovementViewSet)
 
 # URL patterns
 urlpatterns = [
-    path('', dashboard, name='dashboard'),  # Optional homepage view
+    path('', dashboard, name='dashboard'),
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),
     path('accounts/', include('django.contrib.auth.urls')),
-
-    # ✅ Custom dashboard for non-admin users
     path('dashboard/', login_required(TemplateView.as_view(template_name="dashboard.html")), name='user_dashboard'),
 ]
 

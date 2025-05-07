@@ -1,9 +1,9 @@
 from rest_framework import serializers
-from .models import Location, Bin, Item, InventoryMovement
+from .models import Source, Bin, Item, InventoryMovement
 
-class LocationSerializer(serializers.ModelSerializer):
+class SourceSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Location
+        model = Source
         fields = '__all__'
 
 class BinSerializer(serializers.ModelSerializer):

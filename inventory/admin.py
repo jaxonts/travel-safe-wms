@@ -21,6 +21,6 @@ class ItemAdmin(admin.ModelAdmin):
 
 @admin.register(InventoryMovement)
 class InventoryMovementAdmin(admin.ModelAdmin):
-    list_display = ('item', 'from_bin', 'to_bin', 'quantity', 'timestamp')
+    list_display = ('item', 'from_bin', 'to_bin', 'quantity', 'movement_type', 'timestamp', 'performed_by')
     search_fields = ('item__name', 'item__sku')
-    list_filter = ('from_bin', 'to_bin', 'timestamp')
+    list_filter = ('from_bin', 'to_bin', 'movement_type', 'timestamp', 'performed_by')
