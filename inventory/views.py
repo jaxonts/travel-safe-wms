@@ -5,7 +5,6 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-import json
 
 class SourceViewSet(viewsets.ModelViewSet):
     queryset = Source.objects.all()
@@ -29,16 +28,5 @@ def dashboard(request):
 
 @csrf_exempt
 def ebay_notifications(request):
-    if request.method == "GET":
-        challenge = request.GET.get("challenge")
-        if challenge:
-            return HttpResponse(challenge, content_type="text/plain")
-    elif request.method == "POST":
-        try:
-            payload = json.loads(request.body)
-            challenge = payload.get("challenge")
-            if challenge:
-                return HttpResponse(challenge, content_type="text/plain")
-        except Exception:
-            pass
-    return HttpResponse("Invalid request", status=400)
+    # eBay expects this exact token returned as plain text to verify the webhook
+    return HttpResponse("TSW-Notify-Endpoint-Verification-Token-2025", content_type="text/plain")
