@@ -29,19 +29,20 @@ def dashboard(request):
 
 @csrf_exempt
 def ebay_notifications(request):
-    # Support both GET and POST for eBay verification
+    # Handle GET verification challenge (older systems)
     if request.method == "GET":
         challenge = request.GET.get("challenge")
         if challenge:
-            return JsonResponse({"challengeResponse": challenge})
+            return HttpResponse(challenge, content_type="text/plain", status=200)
 
+    # Handle POST verification challenge (Marketplace Deletion requirement)
     elif request.method == "POST":
         try:
             payload = json.loads(request.body)
             challenge = payload.get("challenge")
             if challenge:
-                return JsonResponse({"challengeResponse": challenge})
-        except Exception:
-            pass
+                return HttpResponse(challenge, content_type="text/plain", status=200)
+        except Exception as e:
+            return HttpResponse(f"Error: {str(e)}", status=400)
 
-    return JsonResponse({"message": "Invalid request"}, status=400)
+    return HttpResponse("Invalid request", status=400)
