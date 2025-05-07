@@ -13,7 +13,7 @@ from inventory.views import (
     ItemViewSet,
     InventoryMovementViewSet,
     dashboard,
-    ebay_notifications,  # Added for eBay notifications
+    ebay_notifications,  # ✅ ADD THIS
 )
 
 # DRF API router
@@ -31,8 +31,7 @@ urlpatterns = [
     path('accounts/', include('django.contrib.auth.urls')),
     path('dashboard/', login_required(TemplateView.as_view(template_name="dashboard.html")), name='user_dashboard'),
 
-    # eBay notification endpoint
-    path('ebay/notifications/', ebay_notifications, name='ebay_notifications'),
+    path('ebay/notifications/', ebay_notifications, name='ebay_notifications'),  # ✅ ADD THIS LINE
 ]
 
 # Static file handling (only in development)
