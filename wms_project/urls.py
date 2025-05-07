@@ -13,7 +13,7 @@ from inventory.views import (
     ItemViewSet,
     InventoryMovementViewSet,
     dashboard,
-    ebay_notifications,  # ✅ ADD THIS
+    ebay_notifications,  # ✅ For webhook
 )
 
 # DRF API router
@@ -31,7 +31,8 @@ urlpatterns = [
     path('accounts/', include('django.contrib.auth.urls')),
     path('dashboard/', login_required(TemplateView.as_view(template_name="dashboard.html")), name='user_dashboard'),
 
-    path('ebay/notifications/', ebay_notifications, name='ebay_notifications'),  # ✅ ADD THIS LINE
+    # ✅ This is the webhook URL that must match eBay's expected path
+    path('api/ebay/webhook/', ebay_notifications, name='ebay_webhook'),
 ]
 
 # Static file handling (only in development)
