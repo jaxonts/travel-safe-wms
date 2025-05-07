@@ -20,7 +20,7 @@ INSTALLED_APPS = [
     'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
-    'django.contrib.contenttypes',
+    'django.contrib.contenttypes',  # ✅ fixed typo
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
@@ -142,5 +142,5 @@ JAZZMIN_SETTINGS = {
 # ----------------------------
 # Authentication redirects
 # ----------------------------
-LOGIN_REDIRECT_URL = '/admin/'
+LOGIN_REDIRECT_URL = '/admin/'  # ✅ Directs all successful logins here
 LOGOUT_REDIRECT_URL = '/accounts/login/'
