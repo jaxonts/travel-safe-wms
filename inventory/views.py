@@ -3,7 +3,7 @@ from .models import Source, Bin, Item, InventoryMovement
 from .serializers import SourceSerializer, BinSerializer, ItemSerializer, InventoryMovementSerializer
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse, HttpResponse
+from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
 
@@ -29,20 +29,16 @@ def dashboard(request):
 
 @csrf_exempt
 def ebay_notifications(request):
-    # Handle GET verification challenge (older systems)
     if request.method == "GET":
         challenge = request.GET.get("challenge")
         if challenge:
-            return HttpResponse(challenge, content_type="text/plain", status=200)
-
-    # Handle POST verification challenge (Marketplace Deletion requirement)
+            return HttpResponse(challenge, content_type="text/plain")
     elif request.method == "POST":
         try:
             payload = json.loads(request.body)
             challenge = payload.get("challenge")
             if challenge:
-                return HttpResponse(challenge, content_type="text/plain", status=200)
-        except Exception as e:
-            return HttpResponse(f"Error: {str(e)}", status=400)
-
+                return HttpResponse(challenge, content_type="text/plain")
+        except Exception:
+            pass
     return HttpResponse("Invalid request", status=400)
