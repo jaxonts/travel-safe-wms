@@ -1,8 +1,8 @@
 from django.contrib import admin
-from .models import Location, Bin, Item, InventoryMovement
+from .models import Source, Bin, Item, InventoryMovement
 
 @admin.register(Source)
-class LocationAdmin(admin.ModelAdmin):
+class SourceAdmin(admin.ModelAdmin):
     list_display = ('name', 'address', 'is_main_facility')
     search_fields = ('name', 'address')
     list_filter = ('is_main_facility',)
