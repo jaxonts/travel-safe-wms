@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import Location, Bin, Item, InventoryMovement
 
-@admin.register(Location)
+@admin.register(Source)
 class LocationAdmin(admin.ModelAdmin):
     list_display = ('name', 'address', 'is_main_facility')
     search_fields = ('name', 'address')
