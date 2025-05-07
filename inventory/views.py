@@ -28,5 +28,5 @@ def dashboard(request):
 
 @csrf_exempt
 def ebay_notifications(request):
-    # eBay expects this exact token returned as plain text to verify the webhook
+    # eBay sends a GET request and expects this exact token as a plain text response
     return HttpResponse("TSW-Notify-Endpoint-Verification-Token-2025", content_type="text/plain")
