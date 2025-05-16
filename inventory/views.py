@@ -112,7 +112,7 @@ def ebay_oauth_callback(request):
 
 @csrf_exempt
 def ebay_active_inventory(request):
-    access_token = settings.EBAY_ACCESS_TOKEN  # Ensure this is set in settings.py
+    access_token = settings.EBAY_ACCESS_TOKEN
     url = "https://api.ebay.com/sell/inventory/v1/inventory_item"
 
     headers = {
@@ -136,15 +136,12 @@ def ebay_active_inventory(request):
         for item in inventory.get("inventoryItems", []):
             title = item.get("product", {}).get("title", "N/A")
             sku = item.get("sku")
-
             if not sku:
                 continue
-
             obj, created = Item.objects.update_or_create(
                 sku=sku,
                 defaults={"name": title}
             )
-
             results.append({
                 "sku": sku,
                 "name": title,
