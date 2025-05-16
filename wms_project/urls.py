@@ -31,7 +31,7 @@ urlpatterns = [
     path('accounts/', include('django.contrib.auth.urls')),
     path('dashboard/', login_required(TemplateView.as_view(template_name="dashboard.html")), name='user_dashboard'),
 
-    # ✅ This is the webhook URL that must match eBay's expected path
+    # ✅ Webhook for eBay challenge-response
     path('api/ebay/webhook/', ebay_notifications, name='ebay_webhook'),
 ]
 

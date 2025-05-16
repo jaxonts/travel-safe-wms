@@ -3,9 +3,9 @@ from .models import Source, Bin, Item, InventoryMovement
 from .serializers import SourceSerializer, BinSerializer, ItemSerializer, InventoryMovementSerializer
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse, HttpResponse
+from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-import hashlib
+import json
 
 class SourceViewSet(viewsets.ModelViewSet):
     queryset = Source.objects.all()
@@ -29,14 +29,13 @@ def dashboard(request):
 
 @csrf_exempt
 def ebay_notifications(request):
-    if request.method == 'GET':
-        challenge_code = request.GET.get('challenge_code')
-        if challenge_code:
-            verification_token = 'TSW-Notify-Endpoint-Verification-Token-2025'  # ✅ Replace with your token
-            endpoint = 'https://travel-safe-wms.onrender.com/ebay/notifications/'  # ✅ Must match eBay settings
-
-            data_to_hash = challenge_code + verification_token + endpoint
-            hashed = hashlib.sha256(data_to_hash.encode('utf-8')).hexdigest()
-
-            return JsonResponse({'challengeResponse': hashed})
-    return HttpResponse("Invalid request", status=400)
+    if request.method == "POST":
+        try:
+            body = request.body.decode('utf-8')
+            data = json.loads(body)
+            challenge = data.get("challenge")
+            if challenge:
+                return HttpResponse(challenge, content_type="text/plain", status=200)
+        except Exception:
+            pass
+    return HttpResponse("Invalid", status=400)
