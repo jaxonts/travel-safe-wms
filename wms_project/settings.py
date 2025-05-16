@@ -1,8 +1,10 @@
 from pathlib import Path
 import os
 
+# ----------------------------
+# Base Directory and Security
+# ----------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent
-
 SECRET_KEY = 'django-insecure-3jg^20w1f=-ks%&)%ksz8)icft!!b-kwh!-5_6=ua_txt3j%*@'
 DEBUG = True
 
@@ -14,7 +16,7 @@ ALLOWED_HOSTS = [
 ]
 
 # ----------------------------
-# Installed apps
+# Installed Applications
 # ----------------------------
 INSTALLED_APPS = [
     'jazzmin',
@@ -77,7 +79,7 @@ DATABASES = {
 }
 
 # ----------------------------
-# Password validation
+# Password Validation
 # ----------------------------
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
@@ -87,7 +89,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # ----------------------------
-# Internationalization
+# Localization
 # ----------------------------
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
@@ -95,7 +97,7 @@ USE_I18N = True
 USE_TZ = True
 
 # ----------------------------
-# Static files
+# Static Files
 # ----------------------------
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / "static"]
@@ -113,7 +115,7 @@ REST_FRAMEWORK = {
 }
 
 # ----------------------------
-# Jazzmin Admin Customization
+# Jazzmin Admin Configuration
 # ----------------------------
 JAZZMIN_SETTINGS = {
     "site_title": "Travel Safe Admin",
@@ -140,14 +142,14 @@ JAZZMIN_SETTINGS = {
 }
 
 # ----------------------------
-# Authentication redirects
+# Login/Logout Redirects
 # ----------------------------
 LOGIN_REDIRECT_URL = '/admin/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
 
 # ----------------------------
-# eBay API OAuth Settings
+# eBay OAuth API Integration
 # ----------------------------
-EBAY_CLIENT_ID = "YOUR_PRODUCTION_CLIENT_ID"
-EBAY_CLIENT_SECRET = "YOUR_PRODUCTION_CLIENT_SECRET"
+EBAY_CLIENT_ID = os.getenv("EBAY_CLIENT_ID", "TravelSa-TravelSa-PRD-3a70f81c3-ble944ab")
+EBAY_CLIENT_SECRET = os.getenv("EBAY_CLIENT_SECRET", "")  # ✅ Store this in Render ENV settings
 EBAY_REDIRECT_URI = "https://travel-safe-wms.onrender.com/auth/ebay/return/"
