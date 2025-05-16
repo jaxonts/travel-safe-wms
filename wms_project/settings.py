@@ -153,4 +153,4 @@ LOGOUT_REDIRECT_URL = '/accounts/login/'
 EBAY_CLIENT_ID = os.getenv("EBAY_CLIENT_ID", "TravelSa-TravelSa-PRD-3a70f81c3-ble944ab")
 EBAY_CLIENT_SECRET = os.getenv("EBAY_CLIENT_SECRET", "")  # ✅ Store this in Render ENV settings
 EBAY_REDIRECT_URI = "https://travel-safe-wms.onrender.com/auth/ebay/return/"
-EBAY_ACCESS_TOKEN = "v^1.1#i^1#p^3#I^3#f^0#r^0#t^H4sIAAAAAAAA/+VZf2wbVx2P86Os6..."  # full token here
+EBAY_ACCESS_TOKEN = "v^1.1#i^1#r^0#I^3#f^0#p^3#t^H4sIAAAAAAAA/+VZbY..."  # Use the full token
