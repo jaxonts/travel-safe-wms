@@ -41,7 +41,6 @@ class InventoryMovementViewSet(viewsets.ModelViewSet):
 def dashboard(request):
     return render(request, 'dashboard.html')
 
-
 # --------------------------
 # eBay Webhook Challenge Handler
 # --------------------------
@@ -55,7 +54,6 @@ def ebay_notifications(request):
         challenge = request.GET.get("challenge")
         if challenge:
             return HttpResponse(challenge, content_type="text/plain")
-
     elif request.method == "POST":
         try:
             data = json.loads(request.body.decode('utf-8'))
@@ -66,7 +64,6 @@ def ebay_notifications(request):
             print(f"[Webhook Error] {e}")
 
     return HttpResponse("Invalid", status=400)
-
 
 # --------------------------
 # eBay OAuth Redirect Handler
@@ -111,5 +108,49 @@ def ebay_oauth_callback(request):
     except Exception as e:
         return JsonResponse({
             "error": "Exception during token exchange",
+            "message": str(e)
+        }, status=500)
+
+# --------------------------
+# eBay Active Inventory Fetcher
+# --------------------------
+
+@csrf_exempt
+def ebay_active_inventory(request):
+    """
+    Fetches all active listings from eBay with title and customLabel (SKU).
+    """
+    access_token = "YOUR_ACCESS_TOKEN_HERE"  # Replace or load this securely
+    url = "https://api.ebay.com/sell/inventory/v1/inventory_item"
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+    }
+
+    try:
+        response = requests.get(url, headers=headers)
+        if response.status_code != 200:
+            return JsonResponse({
+                "error": "Failed to fetch inventory",
+                "status": response.status_code,
+                "details": response.json()
+            }, status=400)
+
+        inventory = response.json()
+        items = []
+
+        for item in inventory.get("inventoryItems", []):
+            items.append({
+                "title": item.get("product", {}).get("title", "N/A"),
+                "custom_label": item.get("sku")
+            })
+
+        return JsonResponse(items, safe=False)
+
+    except Exception as e:
+        return JsonResponse({
+            "error": "Unexpected error occurred",
             "message": str(e)
         }, status=500)

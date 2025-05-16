@@ -6,25 +6,26 @@ from rest_framework.routers import DefaultRouter
 from django.contrib.auth.decorators import login_required
 from django.views.generic import TemplateView
 
-# Views from inventory
+# Import views from the inventory app
 from inventory.views import (
     SourceViewSet,
     BinViewSet,
     ItemViewSet,
     InventoryMovementViewSet,
     dashboard,
-    ebay_notifications,       # ✅ For eBay webhook verification
-    ebay_oauth_callback       # ✅ For OAuth return path handling
+    ebay_notifications,       # Webhook challenge handler
+    ebay_oauth_callback,      # OAuth redirect handler
+    ebay_active_inventory     # eBay inventory sync view
 )
 
-# DRF API router
+# Set up DRF API router
 router = DefaultRouter()
 router.register(r'sources', SourceViewSet)
 router.register(r'bins', BinViewSet)
 router.register(r'items', ItemViewSet)
 router.register(r'movements', InventoryMovementViewSet)
 
-# URL patterns
+# Define URL patterns
 urlpatterns = [
     path('', dashboard, name='dashboard'),
     path('admin/', admin.site.urls),
@@ -32,13 +33,12 @@ urlpatterns = [
     path('accounts/', include('django.contrib.auth.urls')),
     path('dashboard/', login_required(TemplateView.as_view(template_name="dashboard.html")), name='user_dashboard'),
 
-    # ✅ eBay webhook
+    # eBay integrations
     path('api/ebay/webhook/', ebay_notifications, name='ebay_webhook'),
-
-    # ✅ OAuth redirect handler from eBay
     path('auth/ebay/return/', ebay_oauth_callback, name='ebay_oauth_callback'),
+    path('api/ebay/inventory/', ebay_active_inventory, name='ebay_active_inventory'),
 ]
 
-# Static file handling (only in development)
+# Static files in development
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
