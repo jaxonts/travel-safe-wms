@@ -41,15 +41,13 @@ class InventoryMovementViewSet(viewsets.ModelViewSet):
 def dashboard(request):
     return render(request, 'dashboard.html')
 
+
 # --------------------------
 # eBay Webhook Challenge Handler
 # --------------------------
 
 @csrf_exempt
 def ebay_notifications(request):
-    """
-    Responds to eBay webhook verification challenge.
-    """
     if request.method == "GET":
         challenge = request.GET.get("challenge")
         if challenge:
@@ -65,22 +63,18 @@ def ebay_notifications(request):
 
     return HttpResponse("Invalid", status=400)
 
+
 # --------------------------
 # eBay OAuth Redirect Handler
 # --------------------------
 
 @csrf_exempt
 def ebay_oauth_callback(request):
-    """
-    Handles redirect from eBay OAuth flow and exchanges code for access token.
-    """
     code = request.GET.get("code")
     if not code:
         return HttpResponse("❌ No authorization code received.", status=400)
 
     token_url = "https://api.ebay.com/identity/v1/oauth2/token"
-
-    # Encode client_id:client_secret for Authorization header
     credentials = f"{settings.EBAY_CLIENT_ID}:{settings.EBAY_CLIENT_SECRET}"
     encoded_credentials = base64.b64encode(credentials.encode()).decode()
 
@@ -111,16 +105,14 @@ def ebay_oauth_callback(request):
             "message": str(e)
         }, status=500)
 
+
 # --------------------------
-# eBay Active Inventory Fetcher
+# eBay Active Inventory Sync to WMS
 # --------------------------
 
 @csrf_exempt
 def ebay_active_inventory(request):
-    """
-    Fetches all active listings from eBay with title and customLabel (SKU).
-    """
-    access_token = "YOUR_ACCESS_TOKEN_HERE"  # Replace or load this securely
+    access_token = settings.EBAY_ACCESS_TOKEN  # Ensure this is set in settings.py
     url = "https://api.ebay.com/sell/inventory/v1/inventory_item"
 
     headers = {
@@ -139,15 +131,27 @@ def ebay_active_inventory(request):
             }, status=400)
 
         inventory = response.json()
-        items = []
+        results = []
 
         for item in inventory.get("inventoryItems", []):
-            items.append({
-                "title": item.get("product", {}).get("title", "N/A"),
-                "custom_label": item.get("sku")
+            title = item.get("product", {}).get("title", "N/A")
+            sku = item.get("sku")
+
+            if not sku:
+                continue
+
+            obj, created = Item.objects.update_or_create(
+                sku=sku,
+                defaults={"name": title}
+            )
+
+            results.append({
+                "sku": sku,
+                "name": title,
+                "status": "created" if created else "updated"
             })
 
-        return JsonResponse(items, safe=False)
+        return JsonResponse(results, safe=False)
 
     except Exception as e:
         return JsonResponse({
