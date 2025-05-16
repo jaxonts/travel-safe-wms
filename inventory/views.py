@@ -49,3 +49,18 @@ def ebay_notifications(request):
             print(f"[eBay webhook error] {e}")
 
     return HttpResponse("Invalid", status=400)
+
+@csrf_exempt
+def ebay_oauth_callback(request):
+    """
+    eBay redirects to this URL after a successful sign-in.
+    This captures the ?code and ?expires_in from the callback.
+    """
+    code = request.GET.get("code")
+    expires = request.GET.get("expires_in")
+    if code:
+        return HttpResponse(
+            f"✅ eBay sign-in success! Code: {code} (expires in {expires} seconds)",
+            content_type="text/plain"
+        )
+    return HttpResponse("❌ No authorization code received.", status=400)

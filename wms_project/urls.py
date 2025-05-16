@@ -13,7 +13,8 @@ from inventory.views import (
     ItemViewSet,
     InventoryMovementViewSet,
     dashboard,
-    ebay_notifications,  # ✅ For webhook
+    ebay_notifications,       # ✅ For eBay webhook verification
+    ebay_oauth_callback       # ✅ For OAuth return path handling
 )
 
 # DRF API router
@@ -31,8 +32,11 @@ urlpatterns = [
     path('accounts/', include('django.contrib.auth.urls')),
     path('dashboard/', login_required(TemplateView.as_view(template_name="dashboard.html")), name='user_dashboard'),
 
-    # ✅ Webhook for eBay challenge-response
+    # ✅ eBay webhook
     path('api/ebay/webhook/', ebay_notifications, name='ebay_webhook'),
+
+    # ✅ OAuth redirect handler from eBay
+    path('auth/ebay/return/', ebay_oauth_callback, name='ebay_oauth_callback'),
 ]
 
 # Static file handling (only in development)
