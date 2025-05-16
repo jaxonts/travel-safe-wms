@@ -20,13 +20,13 @@ INSTALLED_APPS = [
     'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
-    'django.contrib.contenttypes',  # ✅ fixed typo
+    'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'inventory',
     'rest_framework',
-    'widget_tweaks',  # ✅ Required for 'add_class' in templates
+    'widget_tweaks',
 ]
 
 # ----------------------------
@@ -142,5 +142,12 @@ JAZZMIN_SETTINGS = {
 # ----------------------------
 # Authentication redirects
 # ----------------------------
-LOGIN_REDIRECT_URL = '/admin/'  # ✅ Directs all successful logins here
+LOGIN_REDIRECT_URL = '/admin/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
+
+# ----------------------------
+# eBay API OAuth Settings
+# ----------------------------
+EBAY_CLIENT_ID = "YOUR_PRODUCTION_CLIENT_ID"
+EBAY_CLIENT_SECRET = "YOUR_PRODUCTION_CLIENT_SECRET"
+EBAY_REDIRECT_URI = "https://travel-safe-wms.onrender.com/auth/ebay/return/"
