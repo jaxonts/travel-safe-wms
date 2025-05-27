@@ -4,71 +4,61 @@ from inventory.models import Item
 import requests
 
 class Command(BaseCommand):
-    help = "Sync active eBay listings using Trading API into WMS"
+    help = "Sync active eBay listings into WMS"
 
     def handle(self, *args, **options):
         print("🚨 models.py is being read!")
 
         access_token = settings.EBAY_ACCESS_TOKEN
-        app_id = settings.EBAY_CLIENT_ID
+        url = "https://api.ebay.com/sell/inventory/v1/inventory_item"
 
-        url = "https://api.ebay.com/ws/api.dll"
         headers = {
-            "X-EBAY-API-CALL-NAME": "GetMyeBaySelling",
-            "X-EBAY-API-SITEID": "0",
-            "X-EBAY-API-COMPATIBILITY-LEVEL": "967",
-            "X-EBAY-API-APP-NAME": app_id,
-            "Content-Type": "text/xml",
+            "Authorization": f"Bearer {access_token}",
+            "Accept": "application/json",
+            "Content-Type": "application/json",
         }
 
-        body = f"""<?xml version="1.0" encoding="utf-8"?>
-<GetMyeBaySellingRequest xmlns="urn:ebay:apis:eBLBaseComponents">
-  <RequesterCredentials>
-    <eBayAuthToken>{access_token}</eBayAuthToken>
-  </RequesterCredentials>
-  <ActiveList>
-    <Include>true</Include>
-    <Pagination>
-      <EntriesPerPage>100</EntriesPerPage>
-      <PageNumber>1</PageNumber>
-    </Pagination>
-  </ActiveList>
-</GetMyeBaySellingRequest>
-"""
-
         try:
-            response = requests.post(url, headers=headers, data=body)
+            response = requests.get(url, headers=headers)
             if response.status_code != 200:
-                self.stderr.write(self.style.ERROR(f"❌ API error: {response.status_code}"))
-                self.stderr.write(response.text)
+                self.stderr.write(self.style.ERROR(f"❌ Failed to fetch listings: {response.status_code}"))
+                self.stderr.write(str(response.json()))
                 return
 
-            from xml.etree import ElementTree as ET
-            root = ET.fromstring(response.text)
-
-            namespace = {'ns': 'urn:ebay:apis:eBLBaseComponents'}
-            listings = root.findall(".//ns:Item", namespace)
-
-            if not listings:
+            data = response.json()
+            items = data.get("inventoryItems", [])
+            if not items:
                 self.stdout.write("✅ No active listings found.")
                 return
 
-            created = 0
-            for item in listings:
-                sku = item.findtext("ns:SKU", default=None, namespaces=namespace)
-                title = item.findtext("ns:Title", default="Untitled", namespaces=namespace)
+            created, updated = 0, 0
+            for listing in items:
+                sku = listing.get("sku")
+                product = listing.get("product", {})
+                title = product.get("title", "No Title")
+
+                # Fetch price and quantity if available
+                offer = listing.get("offer", {})
+                price = offer.get("price", {}).get("value", 0.00)
+                quantity = listing.get("availability", {}).get("shipToLocationAvailability", {}).get("quantity", 0)
 
                 if not sku:
                     continue
 
-                _, created_flag = Item.objects.update_or_create(
+                obj, created_flag = Item.objects.update_or_create(
                     sku=sku,
-                    defaults={"name": title}
+                    defaults={
+                        "name": title,
+                        "quantity": quantity,
+                        "price": price
+                    }
                 )
                 if created_flag:
                     created += 1
+                else:
+                    updated += 1
 
-            self.stdout.write(f"✅ Synced {created} active eBay listings into WMS.")
+            self.stdout.write(f"✅ Synced {created} new and {updated} updated eBay listings into WMS.")
 
         except Exception as e:
             self.stderr.write(self.style.ERROR(f"❌ Sync error: {str(e)}"))

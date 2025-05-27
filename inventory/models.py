@@ -21,7 +21,8 @@ class Bin(models.Model):
 class Item(models.Model):
     name = models.CharField(max_length=255)
     sku = models.CharField(max_length=100, unique=True)
-    quantity = models.IntegerField(default=0)
+    quantity = models.IntegerField(default=0)  # NEW
+    price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)  # NEW
     description = models.TextField(blank=True)
     bin = models.ForeignKey(Bin, on_delete=models.SET_NULL, null=True)
 
