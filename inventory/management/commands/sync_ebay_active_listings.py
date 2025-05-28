@@ -66,6 +66,7 @@ class Command(BaseCommand):
                 picture_elem = item.find("ebay:PictureDetails/ebay:PictureURL", ns)
                 condition_elem = item.find("ebay:ConditionDisplayName", ns)
                 location_elem = item.find("ebay:Location", ns)
+                item_id_elem = item.find("ebay:ItemID", ns)
 
                 sku = sku_elem.text if sku_elem is not None else None
                 title = title_elem.text if title_elem is not None else "No Title"
@@ -75,6 +76,7 @@ class Command(BaseCommand):
                 image_url = picture_elem.text if picture_elem is not None else ""
                 condition = condition_elem.text if condition_elem is not None else ""
                 location = location_elem.text if location_elem is not None else ""
+                listing_url = f"https://www.ebay.com/itm/{item_id_elem.text}" if item_id_elem is not None else ""
 
                 if not sku:
                     continue
@@ -89,6 +91,7 @@ class Command(BaseCommand):
                         "image_url": image_url,
                         "condition": condition,
                         "location": location,
+                        "listing_url": listing_url,
                     }
                 )
                 if created_flag:

@@ -27,6 +27,7 @@ class Item(models.Model):
     image_url = models.URLField(blank=True)
     condition = models.CharField(max_length=100, blank=True)  # ✅ NEW
     location = models.CharField(max_length=255, blank=True)   # ✅ NEW
+    listing_url = models.URLField(blank=True, default="")
     bin = models.ForeignKey(Bin, on_delete=models.SET_NULL, null=True)
 
     def __str__(self):
