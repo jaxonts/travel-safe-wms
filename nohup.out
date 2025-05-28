@@ -22,3 +22,273 @@
 🔄 Refreshed eBay access token.
 ✅ Synced 0 new and 1854 updated eBay listings into WMS.
 [ Wed May 28 10:52:01 CDT 2025 ] Done. Sleeping for 5 minutes.
+[ Wed May 28 10:57:01 CDT 2025 ] Running eBay sync...
+🚨 models.py is being read!
+🚨 models.py is being read!
+🔄 Refreshed eBay access token.
+✅ Synced 0 new and 1854 updated eBay listings into WMS.
+[ Wed May 28 10:57:33 CDT 2025 ] Done. Sleeping for 5 minutes.
+[ Wed May 28 11:02:33 CDT 2025 ] Running eBay sync...
+🚨 models.py is being read!
+🚨 models.py is being read!
+🔄 Refreshed eBay access token.
+✅ Synced 0 new and 1854 updated eBay listings into WMS.
+[ Wed May 28 11:03:07 CDT 2025 ] Done. Sleeping for 5 minutes.
+[ Wed May 28 11:08:07 CDT 2025 ] Running eBay sync...
+🚨 models.py is being read!
+🚨 models.py is being read!
+🔄 Refreshed eBay access token.
+✅ Synced 0 new and 1854 updated eBay listings into WMS.
+[ Wed May 28 11:08:40 CDT 2025 ] Done. Sleeping for 5 minutes.
+[ Wed May 28 11:14:05 CDT 2025 ] Running eBay sync...
+🚨 models.py is being read!
+🚨 models.py is being read!
+🔄 Refreshed eBay access token.
+✅ Synced 0 new and 1854 updated eBay listings into WMS.
+[ Wed May 28 11:14:41 CDT 2025 ] Done. Sleeping for 5 minutes.
+[ Wed May 28 11:19:41 CDT 2025 ] Running eBay sync...
+🚨 models.py is being read!
+🚨 models.py is being read!
+🔄 Refreshed eBay access token.
+✅ Synced 0 new and 1854 updated eBay listings into WMS.
+[ Wed May 28 11:20:14 CDT 2025 ] Done. Sleeping for 5 minutes.
+[ Wed May 28 11:25:14 CDT 2025 ] Running eBay sync...
+🚨 models.py is being read!
+🚨 models.py is being read!
+🔄 Refreshed eBay access token.
+✅ Synced 0 new and 1854 updated eBay listings into WMS.
+[ Wed May 28 11:25:46 CDT 2025 ] Done. Sleeping for 5 minutes.
+[ Wed May 28 11:30:46 CDT 2025 ] Running eBay sync...
+🚨 models.py is being read!
+🚨 models.py is being read!
+🔄 Refreshed eBay access token.
+✅ Synced 0 new and 1854 updated eBay listings into WMS.
+[ Wed May 28 11:31:16 CDT 2025 ] Done. Sleeping for 5 minutes.
+[ Wed May 28 11:36:16 CDT 2025 ] Running eBay sync...
+🚨 models.py is being read!
+🚨 models.py is being read!
+🔄 Refreshed eBay access token.
+✅ Synced 0 new and 1854 updated eBay listings into WMS.
+[ Wed May 28 11:36:48 CDT 2025 ] Done. Sleeping for 5 minutes.
+[ Wed May 28 11:41:48 CDT 2025 ] Running eBay sync...
+🚨 models.py is being read!
+🚨 models.py is being read!
+🔄 Refreshed eBay access token.
+✅ Synced 0 new and 1854 updated eBay listings into WMS.
+[ Wed May 28 11:42:20 CDT 2025 ] Done. Sleeping for 5 minutes.
+[ Wed May 28 11:47:20 CDT 2025 ] Running eBay sync...
+🚨 models.py is being read!
+🚨 models.py is being read!
+🔄 Refreshed eBay access token.
+✅ Synced 0 new and 1854 updated eBay listings into WMS.
+[ Wed May 28 11:47:54 CDT 2025 ] Done. Sleeping for 5 minutes.
+[ Wed May 28 11:52:54 CDT 2025 ] Running eBay sync...
+🚨 models.py is being read!
+🚨 models.py is being read!
+🔄 Refreshed eBay access token.
+✅ Synced 0 new and 1854 updated eBay listings into WMS.
+[ Wed May 28 11:53:25 CDT 2025 ] Done. Sleeping for 5 minutes.
+[ Wed May 28 11:58:25 CDT 2025 ] Running eBay sync...
+🚨 models.py is being read!
+🚨 models.py is being read!
+🔄 Refreshed eBay access token.
+✅ Synced 0 new and 1854 updated eBay listings into WMS.
+[ Wed May 28 11:58:57 CDT 2025 ] Done. Sleeping for 5 minutes.
+[ Wed May 28 12:03:57 CDT 2025 ] Running eBay sync...
+🚨 models.py is being read!
+🚨 models.py is being read!
+🔄 Refreshed eBay access token.
+✅ Synced 0 new and 1854 updated eBay listings into WMS.
+[ Wed May 28 12:04:32 CDT 2025 ] Done. Sleeping for 5 minutes.
+[ Wed May 28 12:09:32 CDT 2025 ] Running eBay sync...
+🚨 models.py is being read!
+🚨 models.py is being read!
+🔄 Refreshed eBay access token.
+✅ Synced 0 new and 1854 updated eBay listings into WMS.
+[ Wed May 28 12:10:03 CDT 2025 ] Done. Sleeping for 5 minutes.
+[ Wed May 28 12:17:34 CDT 2025 ] Running eBay sync...
+🚨 models.py is being read!
+🚨 models.py is being read!
+🔄 Refreshed eBay access token.
+Traceback (most recent call last):
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/backends/sqlite3/base.py", line 360, in execute
+    return super().execute(query, params)
+sqlite3.OperationalError: no such column: inventory_item.condition
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/jaxonryants/wms_project/manage.py", line 20, in <module>
+    main()
+  File "/Users/jaxonryants/wms_project/manage.py", line 17, in main
+    execute_from_command_line(sys.argv)
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/core/management/__init__.py", line 442, in execute_from_command_line
+    utility.execute()
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/core/management/__init__.py", line 436, in execute
+    self.fetch_command(subcommand).run_from_argv(self.argv)
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/core/management/base.py", line 416, in run_from_argv
+    self.execute(*args, **cmd_options)
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/core/management/base.py", line 460, in execute
+    output = self.handle(*args, **options)
+  File "/Users/jaxonryants/wms_project/inventory/management/commands/sync_ebay_active_listings.py", line 78, in handle
+    obj, created_flag = Item.objects.update_or_create(
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/models/query.py", line 988, in update_or_create
+    obj, created = self.select_for_update().get_or_create(
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/models/query.py", line 946, in get_or_create
+    return self.get(**kwargs), False
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/models/query.py", line 629, in get
+    num = len(clone)
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/models/query.py", line 366, in __len__
+    self._fetch_all()
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/models/query.py", line 1945, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/models/query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/models/sql/compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/backends/sqlite3/base.py", line 360, in execute
+    return super().execute(query, params)
+django.db.utils.OperationalError: no such column: inventory_item.condition
+[ Wed May 28 12:17:37 CDT 2025 ] Done. Sleeping for 5 minutes.
+[ Wed May 28 12:22:37 CDT 2025 ] Running eBay sync...
+🚨 models.py is being read!
+🚨 models.py is being read!
+🔄 Refreshed eBay access token.
+Traceback (most recent call last):
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/backends/sqlite3/base.py", line 360, in execute
+    return super().execute(query, params)
+sqlite3.OperationalError: no such column: inventory_item.condition
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/jaxonryants/wms_project/manage.py", line 20, in <module>
+    main()
+  File "/Users/jaxonryants/wms_project/manage.py", line 17, in main
+    execute_from_command_line(sys.argv)
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/core/management/__init__.py", line 442, in execute_from_command_line
+    utility.execute()
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/core/management/__init__.py", line 436, in execute
+    self.fetch_command(subcommand).run_from_argv(self.argv)
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/core/management/base.py", line 416, in run_from_argv
+    self.execute(*args, **cmd_options)
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/core/management/base.py", line 460, in execute
+    output = self.handle(*args, **options)
+  File "/Users/jaxonryants/wms_project/inventory/management/commands/sync_ebay_active_listings.py", line 82, in handle
+    obj, created_flag = Item.objects.update_or_create(
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/models/query.py", line 988, in update_or_create
+    obj, created = self.select_for_update().get_or_create(
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/models/query.py", line 946, in get_or_create
+    return self.get(**kwargs), False
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/models/query.py", line 629, in get
+    num = len(clone)
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/models/query.py", line 366, in __len__
+    self._fetch_all()
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/models/query.py", line 1945, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/models/query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/models/sql/compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/backends/sqlite3/base.py", line 360, in execute
+    return super().execute(query, params)
+django.db.utils.OperationalError: no such column: inventory_item.condition
+[ Wed May 28 12:22:40 CDT 2025 ] Done. Sleeping for 5 minutes.
+[ Wed May 28 12:27:40 CDT 2025 ] Running eBay sync...
+🚨 models.py is being read!
+🚨 models.py is being read!
+🔄 Refreshed eBay access token.
+Traceback (most recent call last):
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/backends/sqlite3/base.py", line 360, in execute
+    return super().execute(query, params)
+sqlite3.OperationalError: no such column: inventory_item.condition
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/jaxonryants/wms_project/manage.py", line 20, in <module>
+    main()
+  File "/Users/jaxonryants/wms_project/manage.py", line 17, in main
+    execute_from_command_line(sys.argv)
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/core/management/__init__.py", line 442, in execute_from_command_line
+    utility.execute()
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/core/management/__init__.py", line 436, in execute
+    self.fetch_command(subcommand).run_from_argv(self.argv)
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/core/management/base.py", line 416, in run_from_argv
+    self.execute(*args, **cmd_options)
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/core/management/base.py", line 460, in execute
+    output = self.handle(*args, **options)
+  File "/Users/jaxonryants/wms_project/inventory/management/commands/sync_ebay_active_listings.py", line 82, in handle
+    obj, created_flag = Item.objects.update_or_create(
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/models/query.py", line 988, in update_or_create
+    obj, created = self.select_for_update().get_or_create(
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/models/query.py", line 946, in get_or_create
+    return self.get(**kwargs), False
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/models/query.py", line 629, in get
+    num = len(clone)
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/models/query.py", line 366, in __len__
+    self._fetch_all()
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/models/query.py", line 1945, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/models/query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/models/sql/compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+  File "/Users/jaxonryants/.pyenv/versions/3.10.13/lib/python3.10/site-packages/django/db/backends/sqlite3/base.py", line 360, in execute
+    return super().execute(query, params)
+django.db.utils.OperationalError: no such column: inventory_item.condition
+[ Wed May 28 12:27:42 CDT 2025 ] Done. Sleeping for 5 minutes.
+[ Wed May 28 12:32:42 CDT 2025 ] Running eBay sync...
+🚨 models.py is being read!
+🚨 models.py is being read!
+🔄 Refreshed eBay access token.
+✅ Synced 0 new and 1854 updated eBay listings into WMS.
+[ Wed May 28 12:33:17 CDT 2025 ] Done. Sleeping for 5 minutes.

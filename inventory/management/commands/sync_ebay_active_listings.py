@@ -62,11 +62,19 @@ class Command(BaseCommand):
                 title_elem = item.find("ebay:Title", ns)
                 quantity_elem = item.find("ebay:QuantityAvailable", ns)
                 price_elem = item.find("ebay:SellingStatus/ebay:CurrentPrice", ns)
+                description_elem = item.find("ebay:Description", ns)
+                picture_elem = item.find("ebay:PictureDetails/ebay:PictureURL", ns)
+                condition_elem = item.find("ebay:ConditionDisplayName", ns)
+                location_elem = item.find("ebay:Location", ns)
 
                 sku = sku_elem.text if sku_elem is not None else None
                 title = title_elem.text if title_elem is not None else "No Title"
                 quantity = int(quantity_elem.text) if quantity_elem is not None else 0
                 price = float(price_elem.text) if price_elem is not None else 0.00
+                description = description_elem.text if description_elem is not None else ""
+                image_url = picture_elem.text if picture_elem is not None else ""
+                condition = condition_elem.text if condition_elem is not None else ""
+                location = location_elem.text if location_elem is not None else ""
 
                 if not sku:
                     continue
@@ -77,6 +85,10 @@ class Command(BaseCommand):
                         "name": title,
                         "quantity": quantity,
                         "price": price,
+                        "description": description,
+                        "image_url": image_url,
+                        "condition": condition,
+                        "location": location,
                     }
                 )
                 if created_flag:
