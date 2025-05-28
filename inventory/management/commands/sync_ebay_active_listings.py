@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.conf import settings
 from inventory.models import Item
+from ebay.utils import refresh_ebay_access_token
 import requests
 import xml.etree.ElementTree as ET
 
@@ -10,7 +11,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         print("🚨 models.py is being read!")
 
-        access_token = settings.EBAY_ACCESS_TOKEN
+        # Refresh access token
+        access_token = refresh_ebay_access_token()
 
         headers = {
             "Content-Type": "text/xml",
@@ -20,7 +22,12 @@ class Command(BaseCommand):
             "X-EBAY-API-IAF-TOKEN": access_token,
         }
 
-        body = f"""<?xml version="1.0" encoding="utf-8"?>
+        ns = {"ebay": "urn:ebay:apis:eBLBaseComponents"}
+        page_number = 1
+        created, updated = 0, 0
+
+        while True:
+            body = f"""<?xml version="1.0" encoding="utf-8"?>
 <GetMyeBaySellingRequest xmlns="urn:ebay:apis:eBLBaseComponents">
   <RequesterCredentials>
     <eBayAuthToken>{access_token}</eBayAuthToken>
@@ -29,65 +36,58 @@ class Command(BaseCommand):
     <Include>true</Include>
     <Pagination>
       <EntriesPerPage>100</EntriesPerPage>
-      <PageNumber>1</PageNumber>
+      <PageNumber>{page_number}</PageNumber>
     </Pagination>
   </ActiveList>
 </GetMyeBaySellingRequest>
 """
 
-        response = requests.post("https://api.ebay.com/ws/api.dll", headers=headers, data=body)
-        if response.status_code != 200:
-            self.stderr.write(self.style.ERROR(f"❌ eBay Trading API request failed with status {response.status_code}"))
-            self.stderr.write(response.text)
-            return
+            response = requests.post("https://api.ebay.com/ws/api.dll", headers=headers, data=body)
+            if response.status_code != 200:
+                self.stderr.write(self.style.ERROR(f"❌ eBay Trading API request failed with status {response.status_code}"))
+                self.stderr.write(response.text)
+                return
 
-        try:
             root = ET.fromstring(response.content)
-        except ET.ParseError as e:
-            self.stderr.write(self.style.ERROR("❌ Failed to parse XML response"))
-            self.stderr.write(str(e))
-            return
+            active_list = root.find("ebay:ActiveList", ns)
+            if active_list is None:
+                break
 
-        ns = {"ebay": "urn:ebay:apis:eBLBaseComponents"}
-        active_list = root.find("ebay:ActiveList", ns)
+            items = active_list.findall(".//ebay:Item", ns)
+            if not items:
+                break
 
-        if active_list is None:
-            self.stdout.write("✅ No active listings found.")
-            return
+            for item in items:
+                sku_elem = item.find("ebay:SKU", ns)
+                title_elem = item.find("ebay:Title", ns)
+                quantity_elem = item.find("ebay:QuantityAvailable", ns)
+                price_elem = item.find("ebay:SellingStatus/ebay:CurrentPrice", ns)
 
-        items = active_list.findall(".//ebay:Item", ns)
-        created, updated = 0, 0
+                sku = sku_elem.text if sku_elem is not None else None
+                title = title_elem.text if title_elem is not None else "No Title"
+                quantity = int(quantity_elem.text) if quantity_elem is not None else 0
+                price = float(price_elem.text) if price_elem is not None else 0.00
 
-        for item in items:
-            sku = item.findtext("ebay:SKU", default=None, namespaces=ns)
-            title = item.findtext("ebay:Title", default="No Title", namespaces=ns)
-            quantity_text = item.findtext("ebay:Quantity", default="0", namespaces=ns)
-            price_text = item.findtext("ebay:StartPrice", default="0.00", namespaces=ns)
+                if not sku:
+                    continue
 
-            try:
-                quantity = int(quantity_text)
-            except ValueError:
-                quantity = 0
+                obj, created_flag = Item.objects.update_or_create(
+                    sku=sku,
+                    defaults={
+                        "name": title,
+                        "quantity": quantity,
+                        "price": price,
+                    }
+                )
+                if created_flag:
+                    created += 1
+                else:
+                    updated += 1
 
-            try:
-                price = float(price_text)
-            except ValueError:
-                price = 0.00
+            total_pages_elem = root.find(".//ebay:PaginationResult/ebay:TotalNumberOfPages", ns)
+            if total_pages_elem is None or page_number >= int(total_pages_elem.text):
+                break
 
-            if not sku:
-                continue
-
-            obj, created_flag = Item.objects.update_or_create(
-                sku=sku,
-                defaults={
-                    "name": title,
-                    "quantity": quantity,
-                    "price": price,
-                }
-            )
-            if created_flag:
-                created += 1
-            else:
-                updated += 1
+            page_number += 1
 
         self.stdout.write(f"✅ Synced {created} new and {updated} updated eBay listings into WMS.")
