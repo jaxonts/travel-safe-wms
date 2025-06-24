@@ -1,12 +1,13 @@
 from pathlib import Path
 import os
+import dj_database_url
 
 # ----------------------------
 # Base Directory and Security
 # ----------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent
-SECRET_KEY = 'django-insecure-3jg^20w1f=-ks%&)%ksz8)icft!!b-kwh!-5_6=ua_txt3j%*@'
-DEBUG = True
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "insecure-dev-secret")  # Override in Render
+DEBUG = os.getenv("DEBUG", "False") == "True"
 
 ALLOWED_HOSTS = [
     "127.0.0.1",
@@ -72,10 +73,11 @@ WSGI_APPLICATION = 'wms_project.wsgi.application'
 # Database
 # ----------------------------
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default="postgresql://travel_safe_wms_db_user:cYIkLp6V2SS1YYJkDnEqlqaOxa6Mi0dB@dpg-d1dauofdiees73cntk1g-a.oregon-postgres.render.com/travel_safe_wms_db",
+        conn_max_age=600,
+        ssl_require=True
+    )
 }
 
 # ----------------------------
@@ -150,9 +152,9 @@ LOGOUT_REDIRECT_URL = '/accounts/login/'
 # ----------------------------
 # eBay OAuth API Integration
 # ----------------------------
-EBAY_CLIENT_ID = os.getenv("EBAY_CLIENT_ID", "TravelSa-TravelSa-PRD-3a70f81c3-b1e944ab")
-EBAY_CLIENT_SECRET = os.getenv("EBAY_CLIENT_SECRET", "")  # ✅ Store this in Render ENV settings
+EBAY_CLIENT_ID = os.getenv("EBAY_CLIENT_ID")
+EBAY_CLIENT_SECRET = os.getenv("EBAY_CLIENT_SECRET")
 EBAY_REDIRECT_URI = "https://travel-safe-wms.onrender.com/auth/ebay/return/"
-EBAY_ACCESS_TOKEN = "v^1.1#i^1#r^0#f^0#I^3#p^3#t^H4sIAAAAAAAA/+VZW2zb1hm2fEmaZc6KNUiyYgg0Zh3axpQORVKkuMiZbMuzfJFl0ZfYWGrw8lNiLF7Ki2QlQ+s4S1JgLdYFKAp0ResC7cueUiBDW3R1h6J7yMOwYX0YirUFehmydUCxoVuKBQa2Q/kSRcOSrjIWAdODpHP48z//9/2Xw58HLe3Ydf+5oXOfdYd2tq8soaX2UIjajXbt6Dq8p6P97q42VCcQWln65lLncscfj7iSUbKFPLi2ZboQXjRKpivUJpOE75iCJbm6K5iSAa7gKYKYGhsVYhEk2I7lWYpVIsKZgSShIYYHWgVai9G0QuFJc1PlpJUkOFoDNsHItKYAHwcVX3ddHzKm60mmlyRiKMaSiCVj3CTFChQSUCLCsGiOCE+D4+qWiUUiiOitWSvU7nXqTL25pZLrguNhJURvJjUojqcyA+ns5JFona7eDRpET/J898ZRv6VCeFoq+XDzZdyatCD6igKuS0R711e4UamQ2jTmC5hfY1qWOYYGCn8nkAIqvS1UDlqOIXk3tyOY0VVSq4kKYHq6V70Vo5gN+QQo3sYoi1VkBsLBz4QvlXRNBydJpPtSs1NiOk+ExVzOscq6CmqANMbwbBwhJo6t9RypDCVX0gBKWJ+jK1JpY711pRtsNyzYb5mqHnDnhrOW1wfYeGikCNVRhIXGzXEnpXmBYfVy3CaVDDsX+Hbdmb5XNAP3goH5CNeGt3bEZmRcj4Xtig2VZzg2Ho9LQHN0TEN1sRHk+heOj97ARalcLhrYArJUJQ3JWQDPLkkKkAqm1zfA0VWBZnH+8xqQajyhkUxC00iZVeMkhf2GAGRZSfD/h2HiYUtk34OtUGm8UMOaJETFsiFnlXSlSjSK1CrQRmAsukmi6Hm2EI1WKpVIhY5YTiEaQ4iKHhsbFZUiGBKxJavfWpjUa1GrAL7L1QWvamNrFnEE4sXNAtFLO2pOcryqCKUSntiM3xts622c/Q8g+0s6ZmASL9FaGIcs1wO1KWgqlHUF5nX19iILcr0RXSzGIBohjuUQijcFsmQVdHMMvKJ1m2E2QgyKQ2agKWy4lkpea6Gqqy6I36hCdAKRiMODpsCmbDtjGL4nySXItJgv2RiHaL4peLbv3+5EbERVVgzZWyyc8IxKU9CCLVjQJU3wrCDXF8BsvXKaTw/m0+LQ/OT4SDrbFNo8aA64xUkL42y1OE1NpEZS+DM2MCy5RWNhAbQ+/1ipX++fe3BkWo+bi9OqDDq4lRPjcRv1fXeuLHL2tDaVqgyW44YxQauzijkytlhIJpsiSQTFgRYrXeXZCj3Wl8meHJZO6hlHG4qVi+KDdnGmSueKtFjw+0cyylBm+MTEWHPgxwqtlunbt93Wwn49vbf69RYB6awn5rwXmDiPR00BTRdarl7HWKRpCUmhEiyS+ASH/clTMktrmgYqz9NNb78thney1j6JErn1J5cfIGmJQxpPKTQpU5BgGElucl9uNTdv17bsBu3bNkELcn2b4AX3u1iBZOuR4MkholhG1JJ8rxhMzdesDn8eoaiL27+IbpZx/2Y51eaetEHVHdyBz/uO3lrRsMnE+rsEMniZQFYMN2KZDpgqODVmasQEPEXxrus7ZrQpMgJtrdhR5VKiODOeb66nGoByq9U5oLh4PIZkkpIZjmQUjiUTiFJIReZVnqZiEkBzm/Z/10V2nv7N/wA0xTE8zfJx9LnbqoaJurdX//b+MnrjMUJvW+1DLYfeQMuh1fZQCB1B91CH0Dd2dEx1dnz5blf3III7mIirF0wJZxBEFqBqS7rTflfbr/eMqqeHRv++JPsvzfztKN/WXXeKsXIcHdg6x9jVQe2uO9RAX79+pYv6yv5uvIHjTpJiKYQSc+jQ9aud1L7Ovfd9L6edmRk+Kp6uZh++fOpwm3xsCnVvCYVCXW2dy6G2Z7nKj9L+m8XE3n0nr7z8QM/zj70Xy1z9wTMzP7b27u648Hal+8CnF89cfPVPb73y11PnvxZf3X94Tfp5fu7yG899559r+1eUjqlz9LUPv2p8cu2O9s8OvtqTs8/vO9X/q0+/X71z+eBToy8udvzk4MrT7CWeeSo7+LzyxNk71zrn3rrrh4+uvZgVzp58+M/XPoz42V98fB96dPfO1R2HPnrnzatfev+5f1Bpw8wD8+Ts8U9++cHqxUtrL5x/hjx7z0PWfv7emXvfrjz+wB96hi488q1LL/X8bmLPcXuk68rvLx9Nd+9858ye99CBb7/W8wH/2tWPf/b4u68/9vTsubOrCy8T8NBvL7zy0ytl8y9X73/3fbg8/BGx7st/AYrkUeJfGgAA"  # ✅ Your full token here
-EBAY_REFRESH_TOKEN = "v^1.1#i^1#r^1#p^3#I^3#f^0#t^Ul4xMF80OkMyRkM1MkQzN0M3NUZEMTg4Mjc0QjFEOEE1NEJGQUZDXzFfMSNFXjI2MA=="
-EBAY_BASE64_ENCODED_CREDENTIALS = "VHJhdmVsU2EtVHJhdmVsU2EtUFJELTNhNzBmODFjMy1iMWU5NDRhYjpQUkQtYTcwZjgxYzMxMDM1LTBkNWYtNGI1YS1hYTQ3LTNiMDE="
+EBAY_ACCESS_TOKEN = os.getenv("EBAY_ACCESS_TOKEN")
+EBAY_REFRESH_TOKEN = os.getenv("EBAY_REFRESH_TOKEN")
+EBAY_BASE64_ENCODED_CREDENTIALS = os.getenv("EBAY_BASE64_ENCODED_CREDENTIALS")
