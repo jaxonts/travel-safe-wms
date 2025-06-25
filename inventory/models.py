@@ -25,8 +25,8 @@ class Item(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     description = models.TextField(blank=True)
     image_url = models.URLField(blank=True)
-    condition = models.CharField(max_length=100, blank=True)  # ✅ NEW
-    location = models.CharField(max_length=255, blank=True)   # ✅ NEW
+    condition = models.CharField(max_length=100, blank=True)
+    location = models.CharField(max_length=255, blank=True)
     listing_url = models.URLField(blank=True, default="")
     bin = models.ForeignKey(Bin, on_delete=models.SET_NULL, null=True)
 
@@ -51,3 +51,14 @@ class InventoryMovement(models.Model):
 
     def __str__(self):
         return f"{self.item.sku} - {self.movement_type} {self.quantity}"
+
+    def save(self, *args, **kwargs):
+        # If from_bin wasn't explicitly set, use the item's current bin
+        if not self.from_bin:
+            self.from_bin = self.item.bin
+
+        super().save(*args, **kwargs)
+
+        # After saving, update the item's bin to match the new to_bin
+        self.item.bin = self.to_bin
+        self.item.save()
