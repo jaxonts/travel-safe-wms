@@ -33,6 +33,18 @@ class InventoryMovementViewSet(viewsets.ModelViewSet):
     queryset = InventoryMovement.objects.all()
     serializer_class = InventoryMovementSerializer
 
+    def perform_create(self, serializer):
+        # Set from_bin automatically from the current bin location of the item
+        item = serializer.validated_data['item']
+        from_bin = item.bin
+
+        # Save the InventoryMovement with from_bin
+        movement = serializer.save(from_bin=from_bin)
+
+        # Update the item's bin to the new location
+        item.bin = movement.to_bin
+        item.save()
+
 # --------------------------
 # Dashboard View
 # --------------------------
@@ -40,7 +52,6 @@ class InventoryMovementViewSet(viewsets.ModelViewSet):
 @login_required
 def dashboard(request):
     return render(request, 'dashboard.html')
-
 
 # --------------------------
 # eBay Webhook Challenge Handler
@@ -62,7 +73,6 @@ def ebay_notifications(request):
             print(f"[Webhook Error] {e}")
 
     return HttpResponse("Invalid", status=400)
-
 
 # --------------------------
 # eBay OAuth Redirect Handler
@@ -104,7 +114,6 @@ def ebay_oauth_callback(request):
             "error": "Exception during token exchange",
             "message": str(e)
         }, status=500)
-
 
 # --------------------------
 # eBay Active Inventory Sync to WMS
