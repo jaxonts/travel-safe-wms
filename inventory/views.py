@@ -34,14 +34,9 @@ class InventoryMovementViewSet(viewsets.ModelViewSet):
     serializer_class = InventoryMovementSerializer
 
     def perform_create(self, serializer):
-        # Set from_bin automatically from the current bin location of the item
         item = serializer.validated_data['item']
         from_bin = item.bin
-
-        # Save the InventoryMovement with from_bin
         movement = serializer.save(from_bin=from_bin)
-
-        # Update the item's bin to the new location
         item.bin = movement.to_bin
         item.save()
 
@@ -75,7 +70,7 @@ def ebay_notifications(request):
     return HttpResponse("Invalid", status=400)
 
 # --------------------------
-# eBay OAuth Redirect Handler
+# eBay OAuth Callback
 # --------------------------
 
 @csrf_exempt
@@ -116,7 +111,27 @@ def ebay_oauth_callback(request):
         }, status=500)
 
 # --------------------------
-# eBay Active Inventory Sync to WMS
+# eBay Token Refresh Helper
+# --------------------------
+
+def refresh_ebay_token():
+    url = "https://api.ebay.com/identity/v1/oauth2/token"
+    headers = {
+        "Authorization": f"Basic {settings.EBAY_BASE64_ENCODED_CREDENTIALS}",
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
+    data = {
+        "grant_type": "refresh_token",
+        "refresh_token": settings.EBAY_REFRESH_TOKEN,
+        "scope": "https://api.ebay.com/oauth/api_scope https://api.ebay.com/oauth/api_scope/sell.inventory.readonly"
+    }
+    response = requests.post(url, headers=headers, data=data)
+    if response.status_code == 200:
+        return response.json().get("access_token")
+    return None
+
+# --------------------------
+# eBay Active Inventory Sync
 # --------------------------
 
 @csrf_exempt
@@ -124,9 +139,11 @@ def ebay_active_inventory(request):
     if request.method != "POST":
         return JsonResponse({"error": "POST method required"}, status=405)
 
-    access_token = settings.EBAY_ACCESS_TOKEN
-    url = "https://api.ebay.com/sell/inventory/v1/inventory_item"
+    access_token = refresh_ebay_token()
+    if not access_token:
+        return JsonResponse({"error": "Failed to refresh token"}, status=401)
 
+    url = "https://api.ebay.com/sell/inventory/v1/inventory_item"
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json",

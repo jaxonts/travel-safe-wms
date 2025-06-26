@@ -1,45 +1,57 @@
-# inventory/management/commands/sync_ebay_inventory.py
-
-from django.core.management.base import BaseCommand
-from django.conf import settings
+from .fetch_ebay_active_inventory_trading_api import get_ebay_active_inventory
 from inventory.models import Item
 
-import requests
+def sync_ebay_inventory(verbose=False):
+    print("🔄 Syncing eBay inventory with WMS...")
 
-class Command(BaseCommand):
-    help = 'Synchronize eBay listings with WMS'
+    items = get_ebay_active_inventory()
 
-    def handle(self, *args, **kwargs):
-        access_token = settings.EBAY_ACCESS_TOKEN
-        url = "https://api.ebay.com/sell/inventory/v1/inventory_item"
-        headers = {
-            "Authorization": f"Bearer {access_token}",
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-        }
+    if not isinstance(items, list):
+        raise Exception("❌ Expected a list of dicts from eBay, got something else.")
 
-        try:
-            response = requests.get(url, headers=headers)
-            if response.status_code != 200:
-                self.stderr.write(self.style.ERROR(f"Failed to fetch inventory: {response.status_code}"))
-                self.stderr.write(str(response.json()))
-                return
+    if verbose:
+        print(f"🧪 Raw item dump (truncated): {items[:1]}")
 
-            inventory = response.json()
-            count = 0
+    count = 0
 
-            for item in inventory.get("inventoryItems", []):
-                title = item.get("product", {}).get("title", "N/A")
-                sku = item.get("sku")
-                if not sku:
-                    continue
-                Item.objects.update_or_create(
-                    sku=sku,
-                    defaults={"name": title}
-                )
-                count += 1
+    for listing in items:
+        if not isinstance(listing, dict):
+            print("⚠️ Skipping item (not a dict):", listing)
+            continue
 
-            self.stdout.write(self.style.SUCCESS(f"Successfully synced {count} items from eBay."))
+        sku = listing.get("sku")
+        name = listing.get("name", "")
+        quantity = listing.get("quantity", 0)
+        price = listing.get("price", 0.00)
+        description = listing.get("description", "")
+        image_url = listing.get("image_url", "")
+        condition = listing.get("condition", "")
+        location = listing.get("location", "")
+        listing_url = listing.get("listing_url", "")
+        source = listing.get("source", "eBay")
 
-        except Exception as e:
-            self.stderr.write(self.style.ERROR(f"Error during sync: {str(e)}"))
+        if not sku:
+            print("⚠️ Skipping item with missing SKU")
+            continue
+
+        obj, created = Item.objects.update_or_create(
+            sku=sku,
+            defaults={
+                "name": name,
+                "quantity": quantity,
+                "price": price,
+                "description": description,
+                "image_url": image_url,
+                "condition": condition,
+                "location": location,
+                "listing_url": listing_url,
+                "source": source,
+            }
+        )
+
+        count += 1
+        if verbose:
+            print(f"{'🆕 Created' if created else '🔁 Updated'} item: {sku} - {name}")
+
+    print(f"✅ Fetched {len(items)} active listings from eBay")
+    print(f"🟢 Imported/updated {count} items.")

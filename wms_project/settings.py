@@ -1,13 +1,17 @@
-from pathlib import Path
 import os
+from pathlib import Path
 import dj_database_url
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # ----------------------------
 # Base Directory and Security
 # ----------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "insecure-dev-secret")  # Override in Render
-DEBUG = os.getenv("DEBUG", "False") == "True"
+
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-CHANGE_THIS_SECRET_KEY")
+DEBUG = os.getenv("DEBUG", "True") == "True"
 
 ALLOWED_HOSTS = [
     "127.0.0.1",
@@ -46,11 +50,11 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# ----------------------------
+# URLs & WSGI
+# ----------------------------
 ROOT_URLCONF = 'wms_project.urls'
 
-# ----------------------------
-# Templates
-# ----------------------------
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -70,13 +74,11 @@ TEMPLATES = [
 WSGI_APPLICATION = 'wms_project.wsgi.application'
 
 # ----------------------------
-# Database
+# Database Configuration
 # ----------------------------
 DATABASES = {
     'default': dj_database_url.config(
-        default="postgresql://travel_safe_wms_db_user:cYIkLp6V2SS1YYJkDnEqlqaOxa6Mi0dB@dpg-d1dauofdiees73cntk1g-a.oregon-postgres.render.com/travel_safe_wms_db",
-        conn_max_age=600,
-        ssl_require=True
+        default=os.getenv("DATABASE_URL")
     )
 }
 
@@ -91,10 +93,10 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # ----------------------------
-# Localization
+# Internationalization
 # ----------------------------
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/Chicago'
 USE_I18N = True
 USE_TZ = True
 
@@ -102,59 +104,45 @@ USE_TZ = True
 # Static Files
 # ----------------------------
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / "static"]
-STATIC_ROOT = BASE_DIR / "staticfiles"
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
+# ----------------------------
+# Default Auto Field
+# ----------------------------
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ----------------------------
 # Django REST Framework
 # ----------------------------
 REST_FRAMEWORK = {
-    'DEFAULT_RENDERER_CLASSES': [
-        'rest_framework.renderers.JSONRenderer',
-    ]
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [],
 }
 
 # ----------------------------
-# Jazzmin Admin Configuration
-# ----------------------------
-JAZZMIN_SETTINGS = {
-    "site_title": "Travel Safe Admin",
-    "site_header": "Travel Safe WMS",
-    "site_brand": "Travel Safe",
-    "site_logo": "img/travel_safe_logo.png",
-    "welcome_sign": "Welcome to Travel Safe Admin Portal",
-    "copyright": "Travel Safe",
-    "search_model": "auth.User",
-    "show_sidebar": True,
-    "navigation_expanded": True,
-    "order_with_respect_to": ["auth", "inventory"],
-    "custom_links": {},
-    "icons": {
-        "auth": "fas fa-users-cog",
-        "inventory.Item": "fas fa-boxes",
-        "inventory.Bin": "fas fa-box-open",
-        "inventory.Location": "fas fa-warehouse",
-        "inventory.InventoryMovement": "fas fa-dolly",
-    },
-    "show_ui_builder": False,
-    "dark_mode_theme": None,
-    "language_chooser": False,
-}
-
-# ----------------------------
-# Login/Logout Redirects
-# ----------------------------
-LOGIN_REDIRECT_URL = '/admin/'
-LOGOUT_REDIRECT_URL = '/accounts/login/'
-
-# ----------------------------
-# eBay OAuth API Integration
+# eBay OAuth
 # ----------------------------
 EBAY_CLIENT_ID = os.getenv("EBAY_CLIENT_ID")
 EBAY_CLIENT_SECRET = os.getenv("EBAY_CLIENT_SECRET")
-EBAY_REDIRECT_URI = "https://travel-safe-wms.onrender.com/auth/ebay/return/"
-EBAY_ACCESS_TOKEN = os.getenv("EBAY_ACCESS_TOKEN")
 EBAY_REFRESH_TOKEN = os.getenv("EBAY_REFRESH_TOKEN")
-EBAY_BASE64_ENCODED_CREDENTIALS = os.getenv("EBAY_BASE64_ENCODED_CREDENTIALS")
+EBAY_ACCESS_TOKEN = os.getenv("EBAY_ACCESS_TOKEN")  # temporary use only
+
+# ----------------------------
+# Logging (Dev Only)
+# ----------------------------
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'DEBUG',
+    },
+}

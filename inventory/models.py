@@ -11,12 +11,18 @@ class Source(models.Model):
     def __str__(self):
         return self.name
 
+    class Meta:
+        ordering = ['name']
+
 class Bin(models.Model):
     code = models.CharField(max_length=100, unique=True)
     location = models.ForeignKey(Source, on_delete=models.CASCADE)
 
     def __str__(self):
         return f"{self.location.name} - Bin {self.code}"
+
+    class Meta:
+        ordering = ['location__name', 'code']
 
 class Item(models.Model):
     name = models.CharField(max_length=255)
@@ -28,10 +34,14 @@ class Item(models.Model):
     condition = models.CharField(max_length=100, blank=True)
     location = models.CharField(max_length=255, blank=True)
     listing_url = models.URLField(blank=True, default="")
-    bin = models.ForeignKey(Bin, on_delete=models.SET_NULL, null=True)
+    bin = models.ForeignKey(Bin, on_delete=models.SET_NULL, null=True, blank=True)
+    source = models.CharField(max_length=100, default='eBay')  # This could be ForeignKey to Source if needed
 
     def __str__(self):
         return f"{self.sku} - {self.name}"
+
+    class Meta:
+        ordering = ['sku']
 
 class InventoryMovement(models.Model):
     MOVEMENT_TYPES = (
@@ -42,23 +52,15 @@ class InventoryMovement(models.Model):
     )
 
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
-    from_bin = models.ForeignKey(Bin, on_delete=models.SET_NULL, null=True, related_name='from_bin')
-    to_bin = models.ForeignKey(Bin, on_delete=models.SET_NULL, null=True, related_name='to_bin')
+    from_bin = models.ForeignKey(Bin, on_delete=models.SET_NULL, null=True, related_name='movements_out')
+    to_bin = models.ForeignKey(Bin, on_delete=models.SET_NULL, null=True, related_name='movements_in')
+    movement_type = models.CharField(max_length=10, choices=MOVEMENT_TYPES)
     quantity = models.IntegerField()
-    movement_type = models.CharField(max_length=20, choices=MOVEMENT_TYPES)
     timestamp = models.DateTimeField(auto_now_add=True)
-    performed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self):
-        return f"{self.item.sku} - {self.movement_type} {self.quantity}"
+        return f"{self.movement_type} - {self.quantity} of {self.item.sku}"
 
-    def save(self, *args, **kwargs):
-        # If from_bin wasn't explicitly set, use the item's current bin
-        if not self.from_bin:
-            self.from_bin = self.item.bin
-
-        super().save(*args, **kwargs)
-
-        # After saving, update the item's bin to match the new to_bin
-        self.item.bin = self.to_bin
-        self.item.save()
+    class Meta:
+        ordering = ['-timestamp']
