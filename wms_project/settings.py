@@ -11,7 +11,7 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-CHANGE_THIS_SECRET_KEY")
-DEBUG = os.getenv("DEBUG", "True") == "True"
+DEBUG = os.getenv("DEBUG", "True").lower() in ["true", "1"]
 
 ALLOWED_HOSTS = [
     "127.0.0.1",
@@ -165,6 +165,14 @@ JAZZMIN_SETTINGS = {
         {"model": "inventory.Bin"},
         {"model": "inventory.InventoryMovement"},
     ],
+    "icons": {
+        "inventory.Bin": "fas fa-box",
+        "inventory.Item": "fas fa-cubes",
+        "inventory.InventoryMovement": "fas fa-exchange-alt",
+        "inventory.Source": "fas fa-truck",
+    },
     "show_sidebar": True,
     "navigation_expanded": True,
+    "hide_apps": [],
+    "hide_models": [],
 }
