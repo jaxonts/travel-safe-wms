@@ -8,8 +8,18 @@ def sync_ebay_inventory(verbose=False):
     print("\n🔄 Syncing eBay inventory with WMS...")
 
     items = get_ebay_active_inventory()
-    if verbose and items:
-        print("🧪 Raw item dump (truncated):", items[:1])
+
+    # Ensure we have a list
+    if not isinstance(items, list):
+        print("❌ Invalid response format. Expected a list.")
+        return
+
+    if verbose:
+        print(f"🧪 Raw item dump (showing 1 of {len(items)}): {items[:1]}")
+
+    if not items:
+        print("⚠️ No items returned by eBay API. Check credentials or response.")
+        return
 
     imported = 0
     updated = 0
@@ -17,20 +27,21 @@ def sync_ebay_inventory(verbose=False):
     for data in items:
         sku = data.get("sku")
         if not sku:
+            print("⚠️ Skipping item with missing SKU:", data)
             continue
 
         obj, created = Item.objects.get_or_create(sku=sku)
 
-        # Only update selected fields (leave WMS-specific fields like bin_location untouched)
+        # Only update fields that are meant to be overwritten
         obj.name = data.get("name", obj.name)
-        obj.price = data.get("price", obj.price)
-        obj.quantity = data.get("quantity", obj.quantity)
-        obj.description = data.get("description", obj.description)
-        obj.image_url = data.get("image_url", obj.image_url)
-        obj.listing_url = data.get("listing_url", obj.listing_url)
-        obj.condition = data.get("condition", obj.condition)
-        obj.location = data.get("location", obj.location)
-        obj.source = data.get("source", obj.source)
+        obj.price = data.get("price", obj.price or 0)
+        obj.quantity = data.get("quantity", obj.quantity or 0)
+        obj.description = data.get("description", obj.description or "")
+        obj.image_url = data.get("image_url", obj.image_url or "")
+        obj.listing_url = data.get("listing_url", obj.listing_url or "")
+        obj.condition = data.get("condition", obj.condition or "")
+        obj.location = data.get("location", obj.location or "")
+        obj.source = data.get("source", obj.source or "eBay")
 
         obj.save()
 
@@ -42,5 +53,4 @@ def sync_ebay_inventory(verbose=False):
             print(f"🔁 Updated item: {sku} - {obj.name}")
 
     print(f"✅ Fetched {len(items)} active listings from eBay")
-    print(f"🟢 Imported/updated {imported + updated} items.")
-
+    print(f"🟢 Imported: {imported}, Updated: {updated}")

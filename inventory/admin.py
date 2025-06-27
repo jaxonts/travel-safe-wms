@@ -6,15 +6,18 @@ class ItemAdmin(admin.ModelAdmin):
     list_display = ('sku', 'name', 'quantity', 'price', 'location', 'source')
     search_fields = ('sku', 'name', 'location', 'source')
 
+
 @admin.register(Bin)
 class BinAdmin(admin.ModelAdmin):
     list_display = ('code', 'location')
     search_fields = ('code', 'location__name')
 
+
 @admin.register(Source)
 class SourceAdmin(admin.ModelAdmin):
     list_display = ('name', 'address', 'is_main_facility')
     search_fields = ('name',)
+
 
 @admin.register(InventoryMovement)
 class InventoryMovementAdmin(admin.ModelAdmin):
@@ -25,18 +28,19 @@ class InventoryMovementAdmin(admin.ModelAdmin):
     list_filter = ('movement_type', 'timestamp')
     search_fields = ('item__sku', 'item__name')
 
+    @admin.display(description='Item')
     def item_display(self, obj):
         return obj.item.sku if obj.item else "Missing Item"
-    item_display.short_description = 'Item'
 
+    @admin.display(description='From Bin')
     def from_bin_display(self, obj):
         return str(obj.from_bin) if obj.from_bin else "-"
-    from_bin_display.short_description = 'From Bin'
 
+    @admin.display(description='To Bin')
     def to_bin_display(self, obj):
         return str(obj.to_bin) if obj.to_bin else "-"
-    to_bin_display.short_description = 'To Bin'
 
+    @admin.display(description='User')
     def user_display(self, obj):
-        return obj.user.username if obj.user else "-"
-    user_display.short_description = 'User'
+        # Only show if user attribute exists (prevents 500 errors)
+        return getattr(obj.user, 'username', '-') if hasattr(obj, 'user') else "-"

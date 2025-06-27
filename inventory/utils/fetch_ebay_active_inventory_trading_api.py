@@ -5,15 +5,22 @@ from datetime import datetime, timedelta
 
 def get_ebay_active_inventory():
     EBAY_USER_TOKEN = os.getenv("EBAY_ACCESS_TOKEN")
+    EBAY_DEV_ID = os.getenv("EBAY_DEV_ID")
+    EBAY_APP_ID = os.getenv("EBAY_APP_ID")
+    EBAY_CERT_ID = os.getenv("EBAY_CERT_ID")
+
+    if not all([EBAY_USER_TOKEN, EBAY_DEV_ID, EBAY_APP_ID, EBAY_CERT_ID]):
+        print("❌ Missing eBay API credentials.")
+        return []
 
     headers = {
         "Content-Type": "text/xml",
         "X-EBAY-API-CALL-NAME": "GetSellerList",
         "X-EBAY-API-SITEID": "0",
         "X-EBAY-API-COMPATIBILITY-LEVEL": "967",
-        "X-EBAY-API-DEV-NAME": os.getenv("EBAY_DEV_ID"),
-        "X-EBAY-API-APP-NAME": os.getenv("EBAY_APP_ID"),
-        "X-EBAY-API-CERT-NAME": os.getenv("EBAY_CERT_ID"),
+        "X-EBAY-API-DEV-NAME": EBAY_DEV_ID,
+        "X-EBAY-API-APP-NAME": EBAY_APP_ID,
+        "X-EBAY-API-CERT-NAME": EBAY_CERT_ID,
     }
 
     now = datetime.utcnow()
@@ -38,14 +45,22 @@ def get_ebay_active_inventory():
           <StartTimeTo>{end_time}</StartTimeTo>
           <IncludeVariations>true</IncludeVariations>
           <GranularityLevel>Fine</GranularityLevel>
+          <DetailLevel>ReturnAll</DetailLevel>
         </GetSellerListRequest>"""
 
-        response = requests.post("https://api.ebay.com/ws/api.dll", data=body, headers=headers)
+        try:
+            response = requests.post("https://api.ebay.com/ws/api.dll", data=body, headers=headers)
+            response.raise_for_status()
+        except Exception as e:
+            print(f"❌ Error fetching page {page_number}: {e}")
+            break
 
         root = ET.fromstring(response.text)
         namespace = {"ns": "urn:ebay:apis:eBLBaseComponents"}
+
         items = root.findall(".//ns:Item", namespace)
         if not items:
+            print(f"⚠️ No items found on page {page_number}.")
             break
 
         for item in items:
@@ -83,4 +98,3 @@ def get_ebay_active_inventory():
         page_number += 1
 
     return all_items
-
