@@ -24,7 +24,7 @@ ALLOWED_HOSTS = [
 # Installed Applications
 # ----------------------------
 INSTALLED_APPS = [
-    'jazzmin',
+    'jazzmin',  # Jazzmin admin theme
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -128,10 +128,12 @@ REST_FRAMEWORK = {
 EBAY_CLIENT_ID = os.getenv("EBAY_CLIENT_ID")
 EBAY_CLIENT_SECRET = os.getenv("EBAY_CLIENT_SECRET")
 EBAY_REFRESH_TOKEN = os.getenv("EBAY_REFRESH_TOKEN")
-EBAY_ACCESS_TOKEN = os.getenv("EBAY_ACCESS_TOKEN")  # temporary use only
+EBAY_ACCESS_TOKEN = os.getenv("EBAY_ACCESS_TOKEN")
+EBAY_BASE64_ENCODED_CREDENTIALS = os.getenv("EBAY_BASE64_ENCODED_CREDENTIALS")
+EBAY_REDIRECT_URI = os.getenv("EBAY_REDIRECT_URI")
 
 # ----------------------------
-# Logging (Dev Only)
+# Logging
 # ----------------------------
 LOGGING = {
     'version': 1,
@@ -143,6 +145,26 @@ LOGGING = {
     },
     'root': {
         'handlers': ['console'],
-        'level': 'DEBUG',
+        'level': 'DEBUG' if DEBUG else 'INFO',
     },
+}
+
+# ----------------------------
+# Jazzmin Branding Config
+# ----------------------------
+JAZZMIN_SETTINGS = {
+    "site_title": "Travel Safe WMS Admin",
+    "site_header": "Travel Safe",
+    "site_brand": "Travel Safe",
+    "welcome_sign": "Welcome to Travel Safe's WMS",
+    "copyright": "Travel Safe",
+    "search_model": ["inventory.Item", "inventory.Bin", "inventory.InventoryMovement"],
+    "topmenu_links": [
+        {"name": "Dashboard", "url": "admin:index", "permissions": ["auth.view_user"]},
+        {"model": "inventory.Item"},
+        {"model": "inventory.Bin"},
+        {"model": "inventory.InventoryMovement"},
+    ],
+    "show_sidebar": True,
+    "navigation_expanded": True,
 }
