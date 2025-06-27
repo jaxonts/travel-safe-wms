@@ -35,7 +35,7 @@ class Item(models.Model):
     location = models.CharField(max_length=255, blank=True)
     listing_url = models.URLField(blank=True, default="")
     bin = models.ForeignKey(Bin, on_delete=models.SET_NULL, null=True, blank=True)
-    source = models.CharField(max_length=100, default='eBay')  # Optional: use ForeignKey(Source)
+    source = models.CharField(max_length=100, default='eBay')
 
     def __str__(self):
         return f"{self.sku} - {self.name}"
@@ -61,6 +61,12 @@ class InventoryMovement(models.Model):
 
     def __str__(self):
         return f"{self.movement_type} - {self.quantity} of {self.item.sku}"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.movement_type in ['RECEIVE', 'TRANSFER', 'RETURN'] and self.to_bin:
+            self.item.bin = self.to_bin
+            self.item.save()
 
     class Meta:
         ordering = ['-timestamp']
