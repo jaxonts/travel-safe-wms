@@ -1,14 +1,40 @@
 from django.contrib import admin
+from django.http import HttpResponse
+import csv
+
 from .models import Item, InventoryMovement, Bin, Source
 
 @admin.register(Item)
 class ItemAdmin(admin.ModelAdmin):
     list_display = ('sku', 'name', 'quantity', 'price', 'location', 'source', 'bin_display')
     search_fields = ('sku', 'name', 'location', 'source')
+    actions = ['export_to_csv']  # ✅ Added CSV export action
 
     def bin_display(self, obj):
         return str(obj.bin) if obj.bin else "-"
     bin_display.short_description = 'Bin'
+
+    # ✅ CSV export action (non-invasive)
+    @admin.action(description="Export selected items to CSV")
+    def export_to_csv(self, request, queryset):
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="items_export.csv"'
+
+        writer = csv.writer(response)
+        writer.writerow(['SKU', 'Name', 'Quantity', 'Price', 'Location', 'Source', 'Bin'])
+
+        for item in queryset:
+            writer.writerow([
+                item.sku,
+                item.name,
+                item.quantity,
+                item.price,
+                item.location,
+                item.source,
+                item.bin.code if item.bin else ''
+            ])
+
+        return response
 
 @admin.register(Bin)
 class BinAdmin(admin.ModelAdmin):
