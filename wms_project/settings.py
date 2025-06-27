@@ -165,6 +165,16 @@ JAZZMIN_SETTINGS = {
         {"model": "inventory.Bin"},
         {"model": "inventory.InventoryMovement"},
     ],
+    "custom_links": {
+        "inventory": [
+            {
+                "name": "Unassigned Inventory",
+                "url": "/admin/unassigned-inventory/",
+                "icon": "fas fa-box-open",
+                "permissions": ["inventory.view_item"],
+            },
+        ]
+    },
     "icons": {
         "inventory.Bin": "fas fa-box",
         "inventory.Item": "fas fa-cubes",
