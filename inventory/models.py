@@ -35,7 +35,7 @@ class Item(models.Model):
     location = models.CharField(max_length=255, blank=True)
     listing_url = models.URLField(blank=True, default="")
     bin = models.ForeignKey(Bin, on_delete=models.SET_NULL, null=True, blank=True)
-    source = models.CharField(max_length=100, default='eBay')  # This could be ForeignKey to Source if needed
+    source = models.CharField(max_length=100, default='eBay')  # Optional: use ForeignKey(Source)
 
     def __str__(self):
         return f"{self.sku} - {self.name}"
@@ -57,7 +57,7 @@ class InventoryMovement(models.Model):
     movement_type = models.CharField(max_length=10, choices=MOVEMENT_TYPES)
     quantity = models.IntegerField()
     timestamp = models.DateTimeField(auto_now_add=True)
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    performed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self):
         return f"{self.movement_type} - {self.quantity} of {self.item.sku}"
