@@ -40,7 +40,10 @@ urlpatterns = [
     # eBay Integration
     path('api/ebay/webhook/', ebay_notifications, name='ebay_webhook'),              # Webhook verification
     path('auth/ebay/return/', ebay_oauth_callback, name='ebay_oauth_callback'),      # OAuth redirect
-    path('api/ebay/inventory/', ebay_active_inventory, name='ebay_active_inventory') # Inventory sync
+    path('api/ebay/inventory/', ebay_active_inventory, name='ebay_active_inventory'),# Inventory sync
+
+    # 🔧 Inventory App URLs
+    path('', include('inventory.urls')),  # ✅ This line enables URLs like /unassigned-inventory/
 ]
 
 # Serve static files in development

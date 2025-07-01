@@ -1,5 +1,8 @@
 from django.contrib import admin
 from django.http import HttpResponse
+from django.urls import path
+from django.template.response import TemplateResponse
+from django.contrib.admin.views.decorators import staff_member_required
 import csv
 
 from .models import Item, InventoryMovement, Bin, Source
@@ -8,13 +11,12 @@ from .models import Item, InventoryMovement, Bin, Source
 class ItemAdmin(admin.ModelAdmin):
     list_display = ('sku', 'name', 'quantity', 'price', 'location', 'source', 'bin_display')
     search_fields = ('sku', 'name', 'location', 'source')
-    actions = ['export_to_csv']  # ✅ Added CSV export action
+    actions = ['export_to_csv']  # ✅ CSV export action
 
     def bin_display(self, obj):
         return str(obj.bin) if obj.bin else "-"
     bin_display.short_description = 'Bin'
 
-    # ✅ CSV export action (non-invasive)
     @admin.action(description="Export selected items to CSV")
     def export_to_csv(self, request, queryset):
         response = HttpResponse(content_type='text/csv')
@@ -70,3 +72,25 @@ class InventoryMovementAdmin(admin.ModelAdmin):
     def user_display(self, obj):
         return obj.performed_by.username if obj.performed_by else "-"
     user_display.short_description = 'User'
+
+# ✅ Unassigned Inventory View
+class CustomAdminSite(admin.AdminSite):
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path("inventory/unassigned/", self.admin_view(self.unassigned_inventory_view), name="unassigned-inventory"),
+        ]
+        return custom_urls + urls
+
+    @staff_member_required
+    def unassigned_inventory_view(self, request):
+        unassigned_items = Item.objects.filter(bin__isnull=True)
+        context = dict(
+            self.each_context(request),
+            items=unassigned_items,
+            title="Unassigned Inventory",
+        )
+        return TemplateResponse(request, "admin/unassigned_inventory.html", context)
+
+custom_admin_site = CustomAdminSite(name='custom_admin')

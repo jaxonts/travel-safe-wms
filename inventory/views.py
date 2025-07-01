@@ -4,6 +4,7 @@ from .serializers import SourceSerializer, BinSerializer, ItemSerializer, Invent
 
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
+from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
@@ -47,6 +48,15 @@ class InventoryMovementViewSet(viewsets.ModelViewSet):
 @login_required
 def dashboard(request):
     return render(request, 'dashboard.html')
+
+# --------------------------
+# Unassigned Inventory View
+# --------------------------
+
+@staff_member_required
+def unassigned_inventory_view(request):
+    items = Item.objects.filter(bin__isnull=True)
+    return render(request, 'admin/unassigned_inventory.html', {'items': items})
 
 # --------------------------
 # eBay Webhook Challenge Handler
