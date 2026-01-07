@@ -1,0 +1,34 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+  <h1>Import Items from CSV</h1>
+
+  <p>
+    <a class="button" href="../import-template/">Download CSV Template</a>
+  </p>
+
+  <form method="post" enctype="multipart/form-data" style="margin-top: 16px;">
+    {% csrf_token %}
+    <fieldset class="module aligned">
+      {{ form.as_p }}
+    </fieldset>
+    <div class="submit-row">
+      <input type="submit" value="Import CSV" class="default">
+      <a href=".." class="button cancel-link">Cancel</a>
+    </div>
+  </form>
+
+  <hr>
+
+  <h3>Template columns</h3>
+  <p>The CSV must include these columns:</p>
+  <pre>sku,name,price,condition,description,image_url,listing_url,source,starting_qty</pre>
+
+  <p><strong>Notes:</strong></p>
+  <ul>
+    <li><code>sku</code> is required.</li>
+    <li>If “Set quantities” is checked, <code>starting_qty</code> will be applied into the <code>DEFAULT</code> bin using ADJUST movements.</li>
+    <li>Re-importing the same SKU updates the existing Item.</li>
+  </ul>
+{% endblock %}
