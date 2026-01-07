@@ -1,5 +1,6 @@
 import csv
 import io
+import re
 from decimal import Decimal, InvalidOperation
 
 from django import forms
@@ -28,6 +29,8 @@ def _normalize_header(h: str) -> str:
     h = h.replace("\ufeff", "")  # BOM just in case
     h = h.replace(" ", "_")
     h = h.replace("-", "_")
+    h = h.replace("/", "_")
+    h = h.replace("__", "_")
     return h
 
 
@@ -45,14 +48,26 @@ def _to_decimal(val, default=Decimal("0.00")):
 
 
 def _to_int(val, default=0):
+    """
+    Convert value to int safely.
+    Handles: "10", "10.0", "1,234", "Qty: 5", etc.
+    """
     if val is None:
         return default
     s = str(val).strip()
     if not s:
         return default
+
+    # remove commas
+    s = s.replace(",", "")
+
+    # pull the first number we can find (supports negative if needed)
+    m = re.search(r"-?\d+(\.\d+)?", s)
+    if not m:
+        return default
+
     try:
-        # handle "10.0" or "10" etc.
-        return int(float(s))
+        return int(float(m.group(0)))
     except (ValueError, TypeError):
         return default
 
@@ -92,12 +107,50 @@ def _read_uploaded_file_to_text(file_obj) -> str:
 
 def _find_qty(row: dict) -> int:
     """
-    Supports multiple possible quantity column names.
+    Supports many possible quantity column names (template + eBay exports + common variants).
+    Row keys are assumed to already be normalized.
     """
-    # already normalized headers, so check normalized variants
-    for key in ("starting_qty", "starting_quantity", "qty", "quantity"):
+    # First: direct known names
+    candidates = [
+        "starting_qty",
+        "starting_quantity",
+        "qty",
+        "quantity",
+        "available",
+        "available_qty",
+        "available_quantity",
+        "qty_available",
+        "quantity_available",
+        "available_to_sell",
+        "qty_available_to_sell",
+        "quantity_available_to_sell",
+        "quantity_available_for_sale",
+        "available_for_sale",
+        "on_hand",
+        "on_hand_qty",
+        "stock",
+        "stock_qty",
+        "inventory",
+        "inventory_qty",
+    ]
+
+    for key in candidates:
         if key in row and str(row.get(key, "")).strip() != "":
             return _to_int(row.get(key), default=0)
+
+    # Second: fuzzy matching for weird headers (like ebay reports)
+    # If a column name contains both "avail" and "qty" or contains "quantity" and ("avail" or "sell")
+    for k in row.keys():
+        if not k:
+            continue
+        kk = str(k)
+        val = str(row.get(k, "")).strip()
+        if not val:
+            continue
+
+        if ("qty" in kk and "avail" in kk) or ("quantity" in kk and ("avail" in kk or "sell" in kk)):
+            return _to_int(val, default=0)
+
     return 0
 
 
@@ -111,7 +164,7 @@ def import_items_from_csv(file_obj, set_quantities: bool, user=None):
 
     Optional columns:
       - name, price, condition, description, image_url, listing_url, source, location
-      - starting_qty (or qty/quantity)
+      - starting_qty (or many qty variants)
 
     Behavior:
       - Upserts Item by sku
@@ -134,7 +187,7 @@ def import_items_from_csv(file_obj, set_quantities: bool, user=None):
     # Normalize headers
     reader.fieldnames = [_normalize_header(h) for h in reader.fieldnames]
 
-    # Make sure we have a sku column (some users accidentally rename it)
+    # Make sure we have a sku column
     if "sku" not in reader.fieldnames:
         return {
             "created": 0,
@@ -156,8 +209,7 @@ def import_items_from_csv(file_obj, set_quantities: bool, user=None):
 
             sku = clean_row.get("sku", "").strip()
             if not sku:
-                # skip totally blank lines
-                continue
+                continue  # skip blank lines
 
             name = clean_row.get("name", "").strip() or sku
             price = _to_decimal(clean_row.get("price"), default=Decimal("0.00"))
@@ -198,7 +250,6 @@ def import_items_from_csv(file_obj, set_quantities: bool, user=None):
                     if user and getattr(user, "is_authenticated", False):
                         performed_by = user
 
-                    # Positive delta: add stock into DEFAULT
                     if delta > 0:
                         InventoryMovement.objects.create(
                             item=obj,
@@ -209,7 +260,6 @@ def import_items_from_csv(file_obj, set_quantities: bool, user=None):
                             note="CSV import set quantity",
                             performed_by=performed_by,
                         )
-                    # Negative delta: remove stock from DEFAULT
                     else:
                         InventoryMovement.objects.create(
                             item=obj,
