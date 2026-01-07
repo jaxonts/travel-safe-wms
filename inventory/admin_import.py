@@ -1,27 +1,11 @@
 import csv
-from io import StringIO
+import io
+from decimal import Decimal, InvalidOperation
 
 from django import forms
-from django.contrib import messages
-from django.http import HttpResponse
-from django.shortcuts import redirect, render
-from django.urls import path
-from django.utils.text import slugify
+from django.db import transaction
 
 from .models import Item, Source, Bin, InventoryBalance, InventoryMovement
-
-
-TEMPLATE_COLUMNS = [
-    "sku",
-    "name",
-    "price",
-    "condition",
-    "description",
-    "image_url",
-    "listing_url",
-    "source",
-    "starting_qty",
-]
 
 
 class ItemCSVImportForm(forms.Form):
@@ -29,202 +13,220 @@ class ItemCSVImportForm(forms.Form):
     set_quantities = forms.BooleanField(
         required=False,
         initial=False,
-        help_text="If checked, will set starting_qty into DEFAULT bin using ADJUST movements.",
+        help_text="If checked, quantity column will set the DEFAULT bin quantity (creates ADJUST movements).",
     )
 
 
-def download_item_template_csv():
+def _normalize_header(h: str) -> str:
     """
-    Returns an HttpResponse containing the template CSV.
+    Normalize CSV header keys so different exports still work.
+    Example: 'Starting Qty' -> 'starting_qty'
     """
-    response = HttpResponse(content_type="text/csv")
-    response["Content-Disposition"] = 'attachment; filename="wms_items_template.csv"'
-    writer = csv.writer(response)
-    writer.writerow(TEMPLATE_COLUMNS)
-    # Example row:
-    writer.writerow(
-        [
-            "SKU-001",
-            "Example Item Name",
-            "19.99",
-            "New",
-            "Optional description",
-            "https://example.com/image.jpg",
-            "https://www.ebay.com/itm/1234567890",
-            "Manual",
-            "10",
-        ]
-    )
-    return response
+    if h is None:
+        return ""
+    h = str(h).strip().lower()
+    h = h.replace("\ufeff", "")  # BOM just in case
+    h = h.replace(" ", "_")
+    h = h.replace("-", "_")
+    return h
 
 
-def parse_decimal(value):
+def _to_decimal(val, default=Decimal("0.00")):
+    if val is None:
+        return default
+    s = str(val).strip()
+    if not s:
+        return default
+    s = s.replace("$", "").replace(",", "")
     try:
-        if value is None:
-            return None
-        s = str(value).strip().replace("$", "").replace(",", "")
-        if not s:
-            return None
-        return s  # let Django DecimalField parse it on assignment
-    except Exception:
-        return None
-
-
-def parse_int(value, default=0):
-    try:
-        if value is None:
-            return default
-        s = str(value).strip()
-        if not s:
-            return default
-        return int(float(s))
-    except Exception:
+        return Decimal(s)
+    except (InvalidOperation, ValueError):
         return default
 
 
-def import_items_from_csv(file, set_quantities: bool, request=None):
+def _to_int(val, default=0):
+    if val is None:
+        return default
+    s = str(val).strip()
+    if not s:
+        return default
+    try:
+        # handle "10.0" or "10" etc.
+        return int(float(s))
+    except (ValueError, TypeError):
+        return default
+
+
+def _get_default_bin():
     """
-    Reads CSV and upserts Items.
-    If set_quantities=True, uses starting_qty to create ADJUST InventoryMovements into DEFAULT bin.
-    Returns (created_count, updated_count, errors_list).
+    Ensures a DEFAULT bin exists for imports/adjustments.
     """
-    # Ensure DEFAULT bin exists
-    src, _ = Source.objects.get_or_create(name="Main Facility", defaults={"is_main_facility": True})
-    default_bin, _ = Bin.objects.get_or_create(code="DEFAULT", defaults={"location": src})
+    src, _ = Source.objects.get_or_create(
+        name="Main Facility",
+        defaults={"is_main_facility": True},
+    )
+    b, _ = Bin.objects.get_or_create(
+        code="DEFAULT",
+        defaults={"location": src},
+    )
+    return b
 
-    data = file.read()
-    text = data.decode("utf-8-sig", errors="replace")
-    reader = csv.DictReader(StringIO(text))
 
-    # Validate headers
-    headers = set(reader.fieldnames or [])
-    missing = set(TEMPLATE_COLUMNS) - headers
-    if missing:
-        return 0, 0, [f"CSV missing columns: {sorted(missing)}"]
+def _read_uploaded_file_to_text(file_obj) -> str:
+    """
+    Safely reads an uploaded Django InMemoryUploadedFile/TemporaryUploadedFile
+    and returns decoded text.
+    Handles UTF-8 BOM and falls back to latin-1.
+    """
+    raw = file_obj.read()
 
+    # Some CSVs can contain null bytes; strip them.
+    if isinstance(raw, (bytes, bytearray)):
+        raw = raw.replace(b"\x00", b"")
+
+    try:
+        return raw.decode("utf-8-sig")
+    except Exception:
+        return raw.decode("latin-1", errors="replace")
+
+
+def _find_qty(row: dict) -> int:
+    """
+    Supports multiple possible quantity column names.
+    """
+    # already normalized headers, so check normalized variants
+    for key in ("starting_qty", "starting_quantity", "qty", "quantity"):
+        if key in row and str(row.get(key, "")).strip() != "":
+            return _to_int(row.get(key), default=0)
+    return 0
+
+
+@transaction.atomic
+def import_items_from_csv(file_obj, set_quantities: bool, user=None):
+    """
+    Imports Items from CSV.
+
+    Required column:
+      - sku
+
+    Optional columns:
+      - name, price, condition, description, image_url, listing_url, source, location
+      - starting_qty (or qty/quantity)
+
+    Behavior:
+      - Upserts Item by sku
+      - If set_quantities=True:
+          sets DEFAULT bin qty to provided quantity using ADJUST movements
+    """
     created = 0
     updated = 0
     errors = []
 
-    row_num = 1  # header is row 1
-    for row in reader:
-        row_num += 1
-        sku = (row.get("sku") or "").strip()
-        name = (row.get("name") or "").strip()
+    text = _read_uploaded_file_to_text(file_obj)
 
-        if not sku:
-            errors.append(f"Row {row_num}: sku is required")
-            continue
+    # Use StringIO so csv module handles newlines correctly across platforms
+    buf = io.StringIO(text)
+    reader = csv.DictReader(buf)
 
-        defaults = {
-            "name": name or sku,
-            "price": parse_decimal(row.get("price")) or "0.00",
-            "condition": (row.get("condition") or "").strip(),
-            "description": (row.get("description") or "").strip(),
-            "image_url": (row.get("image_url") or "").strip(),
-            "listing_url": (row.get("listing_url") or "").strip(),
-            "source": (row.get("source") or "Manual").strip() or "Manual",
-            "location": "",  # keep blank; bin locations are handled via balances/bins
+    if not reader.fieldnames:
+        return {"created": 0, "updated": 0, "errors": ["CSV has no header row."]}
+
+    # Normalize headers
+    reader.fieldnames = [_normalize_header(h) for h in reader.fieldnames]
+
+    # Make sure we have a sku column (some users accidentally rename it)
+    if "sku" not in reader.fieldnames:
+        return {
+            "created": 0,
+            "updated": 0,
+            "errors": [f"Missing required column: sku. Found columns: {reader.fieldnames}"],
         }
 
-        obj = Item.objects.filter(sku=sku).first()
-        if obj is None:
-            obj = Item(sku=sku, **defaults)
-            try:
-                obj.full_clean()
-                obj.save()
+    default_bin = _get_default_bin() if set_quantities else None
+
+    # Start on line 2 because line 1 is the header
+    for idx, row in enumerate(reader, start=2):
+        try:
+            # Normalize row keys and values
+            clean_row = {}
+            for k, v in (row or {}).items():
+                nk = _normalize_header(k)
+                nv = "" if v is None else str(v).strip()
+                clean_row[nk] = nv
+
+            sku = clean_row.get("sku", "").strip()
+            if not sku:
+                # skip totally blank lines
+                continue
+
+            name = clean_row.get("name", "").strip() or sku
+            price = _to_decimal(clean_row.get("price"), default=Decimal("0.00"))
+
+            defaults = {
+                "name": name,
+                "price": price,
+                "condition": clean_row.get("condition", "").strip(),
+                "description": clean_row.get("description", "").strip(),
+                "image_url": clean_row.get("image_url", "").strip(),
+                "listing_url": clean_row.get("listing_url", "").strip(),
+                "source": clean_row.get("source", "").strip() or "Manual",
+                "location": clean_row.get("location", "").strip(),
+            }
+
+            obj, was_created = Item.objects.update_or_create(
+                sku=sku,
+                defaults=defaults,
+            )
+            if was_created:
                 created += 1
-            except Exception as e:
-                errors.append(f"Row {row_num} (SKU {sku}): {e}")
-                continue
-        else:
-            changed = False
-            for k, v in defaults.items():
-                if getattr(obj, k) != v:
-                    setattr(obj, k, v)
-                    changed = True
-            try:
-                if changed:
-                    obj.full_clean()
-                    obj.save(update_fields=list(defaults.keys()))
+            else:
                 updated += 1
-            except Exception as e:
-                errors.append(f"Row {row_num} (SKU {sku}): {e}")
-                continue
 
-        if set_quantities:
-            desired_qty = parse_int(row.get("starting_qty"), default=0)
+            if set_quantities:
+                target_qty = max(0, _find_qty(clean_row))
 
-            bal, _ = InventoryBalance.objects.get_or_create(item=obj, bin=default_bin, defaults={"quantity": 0})
-            current_qty = int(bal.quantity)
-            diff = desired_qty - current_qty
+                bal, _ = InventoryBalance.objects.get_or_create(
+                    item=obj,
+                    bin=default_bin,
+                    defaults={"quantity": 0},
+                )
+                current_qty = int(bal.quantity or 0)
 
-            if diff != 0:
-                # Increase => to_bin, Decrease => from_bin
-                if diff > 0:
-                    InventoryMovement.objects.create(
-                        item=obj,
-                        movement_type="ADJUST",
-                        quantity=diff,
-                        to_bin=default_bin,
-                        performed_by=getattr(request, "user", None) if request and request.user.is_authenticated else None,
-                        note=f"CSV import set qty to {desired_qty} (was {current_qty})",
-                    )
-                else:
-                    InventoryMovement.objects.create(
-                        item=obj,
-                        movement_type="ADJUST",
-                        quantity=abs(diff),
-                        from_bin=default_bin,
-                        performed_by=getattr(request, "user", None) if request and request.user.is_authenticated else None,
-                        note=f"CSV import set qty to {desired_qty} (was {current_qty})",
-                    )
+                delta = target_qty - current_qty
+                if delta != 0:
+                    performed_by = None
+                    if user and getattr(user, "is_authenticated", False):
+                        performed_by = user
 
-    return created, updated, errors
+                    # Positive delta: add stock into DEFAULT
+                    if delta > 0:
+                        InventoryMovement.objects.create(
+                            item=obj,
+                            from_bin=None,
+                            to_bin=default_bin,
+                            movement_type="ADJUST",
+                            quantity=delta,
+                            note="CSV import set quantity",
+                            performed_by=performed_by,
+                        )
+                    # Negative delta: remove stock from DEFAULT
+                    else:
+                        InventoryMovement.objects.create(
+                            item=obj,
+                            from_bin=default_bin,
+                            to_bin=None,
+                            movement_type="ADJUST",
+                            quantity=(-delta),
+                            note="CSV import set quantity",
+                            performed_by=performed_by,
+                        )
 
+                    # Ensure balance matches target even if movement logic changes later
+                    bal.refresh_from_db()
+                    if int(bal.quantity or 0) != target_qty:
+                        InventoryBalance.objects.filter(pk=bal.pk).update(quantity=target_qty)
 
-def item_import_view(request):
-    """
-    Admin view page: download template + upload CSV import.
-    """
-    if request.method == "POST":
-        form = ItemCSVImportForm(request.POST, request.FILES)
-        if form.is_valid():
-            csv_file = form.cleaned_data["csv_file"]
-            set_quantities = form.cleaned_data["set_quantities"]
+        except Exception as e:
+            errors.append(f"Line {idx}: {e}")
 
-            created, updated, errors = import_items_from_csv(csv_file, set_quantities, request=request)
-
-            if errors:
-                messages.warning(request, f"Imported with {len(errors)} issue(s). Showing first 10.")
-                for e in errors[:10]:
-                    messages.error(request, e)
-
-            messages.success(request, f"Import complete. Created: {created}, Updated: {updated}")
-            return redirect("..")
-    else:
-        form = ItemCSVImportForm()
-
-    return render(request, "admin/item_csv_import.html", {"form": form})
-
-
-def item_template_view(request):
-    return download_item_template_csv()
-
-
-def get_item_import_urls(admin_site):
-    """
-    Returns URL patterns to be injected into ItemAdmin.get_urls().
-    """
-    return [
-        path(
-            "import-csv/",
-            admin_site.admin_view(item_import_view),
-            name="inventory_item_import_csv",
-        ),
-        path(
-            "import-template/",
-            admin_site.admin_view(item_template_view),
-            name="inventory_item_import_template",
-        ),
-    ]
+    return {"created": created, "updated": updated, "errors": errors}
