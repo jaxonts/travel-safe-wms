@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+
 import dj_database_url
 from dotenv import load_dotenv
 
@@ -24,61 +25,61 @@ ALLOWED_HOSTS = [
 # Installed Applications
 # ----------------------------
 INSTALLED_APPS = [
-    'jazzmin',  # Jazzmin admin theme
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'inventory',
-    'rest_framework',
-    'widget_tweaks',
+    "jazzmin",  # Jazzmin admin theme
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "inventory",
+    "rest_framework",
+    "widget_tweaks",
 ]
 
 # ----------------------------
 # Middleware
 # ----------------------------
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
 # ----------------------------
 # URLs & WSGI
 # ----------------------------
-ROOT_URLCONF = 'wms_project.urls'
+ROOT_URLCONF = "wms_project.urls"
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / "templates"],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [BASE_DIR / "templates"],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
 ]
 
-WSGI_APPLICATION = 'wms_project.wsgi.application'
+WSGI_APPLICATION = "wms_project.wsgi.application"
 
 # ----------------------------
 # Database Configuration
 # ----------------------------
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.getenv("DATABASE_URL")
+    "default": dj_database_url.config(
+        default=os.getenv("DATABASE_URL"),
     )
 }
 
@@ -86,40 +87,40 @@ DATABASES = {
 # Password Validation
 # ----------------------------
 AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
 # ----------------------------
 # Internationalization
 # ----------------------------
-LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'America/Chicago'
+LANGUAGE_CODE = "en-us"
+TIME_ZONE = "America/Chicago"
 USE_I18N = True
 USE_TZ = True
 
 # ----------------------------
 # Static Files
 # ----------------------------
-STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STATIC_URL = "/static/"
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # ----------------------------
 # Default Auto Field
 # ----------------------------
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # ----------------------------
 # Django REST Framework
 # ----------------------------
 REST_FRAMEWORK = {
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.AllowAny",
     ],
-    'DEFAULT_AUTHENTICATION_CLASSES': [],
+    "DEFAULT_AUTHENTICATION_CLASSES": [],
 }
 
 # ----------------------------
@@ -136,16 +137,16 @@ EBAY_REDIRECT_URI = os.getenv("EBAY_REDIRECT_URI")
 # Logging
 # ----------------------------
 LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
         },
     },
-    'root': {
-        'handlers': ['console'],
-        'level': 'DEBUG' if DEBUG else 'INFO',
+    "root": {
+        "handlers": ["console"],
+        "level": "DEBUG" if DEBUG else "INFO",
     },
 }
 
@@ -156,6 +157,16 @@ JAZZMIN_SETTINGS = {
     "site_title": "Travel Safe WMS Admin",
     "site_header": "Travel Safe",
     "site_brand": "Travel Safe",
+
+    # ✅ Logo in top-left
+    "site_logo": "img/travel_safe_logo.png",
+
+    # ✅ Optional: logo on the login page
+    "login_logo": "img/travel_safe_logo.png",
+
+    # ✅ Optional: favicon (Jazzmin supports this)
+    "site_icon": "img/travel_safe_logo.png",
+
     "welcome_sign": "Welcome to Travel Safe's WMS",
     "copyright": "Travel Safe",
     "search_model": ["inventory.Item", "inventory.Bin", "inventory.InventoryMovement"],
