@@ -1,6 +1,5 @@
 import csv
 import io
-import re
 from decimal import Decimal, InvalidOperation
 
 from django import forms
@@ -14,23 +13,21 @@ class ItemCSVImportForm(forms.Form):
     set_quantities = forms.BooleanField(
         required=False,
         initial=False,
-        help_text="If checked, quantity column will set the DEFAULT bin quantity (creates ADJUST movements).",
+        help_text="If checked, quantity column will set the DEFAULT bin quantity (and optionally create movements).",
     )
 
 
 def _normalize_header(h: str) -> str:
     """
     Normalize CSV header keys so different exports still work.
-    Example: 'Starting Qty' -> 'starting_qty'
+    Example: 'Starting Quantity' -> 'starting_quantity'
     """
     if h is None:
         return ""
     h = str(h).strip().lower()
-    h = h.replace("\ufeff", "")  # BOM just in case
+    h = h.replace("\ufeff", "")  # BOM
     h = h.replace(" ", "_")
     h = h.replace("-", "_")
-    h = h.replace("/", "_")
-    h = h.replace("__", "_")
     return h
 
 
@@ -48,26 +45,13 @@ def _to_decimal(val, default=Decimal("0.00")):
 
 
 def _to_int(val, default=0):
-    """
-    Convert value to int safely.
-    Handles: "10", "10.0", "1,234", "Qty: 5", etc.
-    """
     if val is None:
         return default
     s = str(val).strip()
     if not s:
         return default
-
-    # remove commas
-    s = s.replace(",", "")
-
-    # pull the first number we can find (supports negative if needed)
-    m = re.search(r"-?\d+(\.\d+)?", s)
-    if not m:
-        return default
-
     try:
-        return int(float(m.group(0)))
+        return int(float(s))
     except (ValueError, TypeError):
         return default
 
@@ -89,13 +73,18 @@ def _get_default_bin():
 
 def _read_uploaded_file_to_text(file_obj) -> str:
     """
-    Safely reads an uploaded Django InMemoryUploadedFile/TemporaryUploadedFile
-    and returns decoded text.
+    Safely reads an uploaded Django file and returns decoded text.
     Handles UTF-8 BOM and falls back to latin-1.
     """
+    # make sure we read from the start
+    try:
+        file_obj.seek(0)
+    except Exception:
+        pass
+
     raw = file_obj.read()
 
-    # Some CSVs can contain null bytes; strip them.
+    # Strip null bytes just in case
     if isinstance(raw, (bytes, bytearray)):
         raw = raw.replace(b"\x00", b"")
 
@@ -107,51 +96,33 @@ def _read_uploaded_file_to_text(file_obj) -> str:
 
 def _find_qty(row: dict) -> int:
     """
-    Supports many possible quantity column names (template + eBay exports + common variants).
-    Row keys are assumed to already be normalized.
+    Supports multiple possible quantity column names.
+    Your CSV has: 'Starting Quantity' -> normalized to 'starting_quantity'
     """
-    # First: direct known names
-    candidates = [
+    for key in (
         "starting_qty",
         "starting_quantity",
         "qty",
         "quantity",
-        "available",
-        "available_qty",
-        "available_quantity",
-        "qty_available",
-        "quantity_available",
-        "available_to_sell",
-        "qty_available_to_sell",
-        "quantity_available_to_sell",
-        "quantity_available_for_sale",
-        "available_for_sale",
         "on_hand",
-        "on_hand_qty",
+        "onhand",
         "stock",
-        "stock_qty",
-        "inventory",
-        "inventory_qty",
-    ]
-
-    for key in candidates:
+    ):
         if key in row and str(row.get(key, "")).strip() != "":
             return _to_int(row.get(key), default=0)
-
-    # Second: fuzzy matching for weird headers (like ebay reports)
-    # If a column name contains both "avail" and "qty" or contains "quantity" and ("avail" or "sell")
-    for k in row.keys():
-        if not k:
-            continue
-        kk = str(k)
-        val = str(row.get(k, "")).strip()
-        if not val:
-            continue
-
-        if ("qty" in kk and "avail" in kk) or ("quantity" in kk and ("avail" in kk or "sell" in kk)):
-            return _to_int(val, default=0)
-
     return 0
+
+
+def _supports_adjust() -> bool:
+    """
+    Returns True if InventoryMovement allows movement_type='ADJUST'
+    (choices contain ADJUST).
+    """
+    try:
+        choices = InventoryMovement._meta.get_field("movement_type").choices or []
+        return any(c[0] == "ADJUST" for c in choices)
+    except Exception:
+        return False
 
 
 @transaction.atomic
@@ -159,48 +130,59 @@ def import_items_from_csv(file_obj, set_quantities: bool, user=None):
     """
     Imports Items from CSV.
 
-    Required column:
+    Required:
       - sku
 
-    Optional columns:
+    Optional:
       - name, price, condition, description, image_url, listing_url, source, location
-      - starting_qty (or many qty variants)
+      - starting_quantity (or starting_qty/qty/quantity)
 
     Behavior:
       - Upserts Item by sku
       - If set_quantities=True:
-          sets DEFAULT bin qty to provided quantity using ADJUST movements
+          sets DEFAULT bin qty to provided quantity
+          (creates ADJUST movements only if ADJUST is supported)
     """
     created = 0
     updated = 0
     errors = []
+    warnings = []
 
     text = _read_uploaded_file_to_text(file_obj)
 
-    # Use StringIO so csv module handles newlines correctly across platforms
     buf = io.StringIO(text)
     reader = csv.DictReader(buf)
 
     if not reader.fieldnames:
-        return {"created": 0, "updated": 0, "errors": ["CSV has no header row."]}
+        return {"created": 0, "updated": 0, "errors": ["CSV has no header row."], "warnings": []}
 
     # Normalize headers
     reader.fieldnames = [_normalize_header(h) for h in reader.fieldnames]
 
-    # Make sure we have a sku column
     if "sku" not in reader.fieldnames:
         return {
             "created": 0,
             "updated": 0,
             "errors": [f"Missing required column: sku. Found columns: {reader.fieldnames}"],
+            "warnings": [],
         }
 
     default_bin = _get_default_bin() if set_quantities else None
+    can_adjust = _supports_adjust()
+    if set_quantities and not can_adjust:
+        warnings.append(
+            "Your InventoryMovement model does not support movement_type='ADJUST' on this server. "
+            "Quantities will still be set correctly, but no ADJUST history entries will be created."
+        )
 
-    # Start on line 2 because line 1 is the header
+    performed_by = None
+    if user and getattr(user, "is_authenticated", False):
+        performed_by = user
+
+    # Start at line 2 because line 1 is header
     for idx, row in enumerate(reader, start=2):
         try:
-            # Normalize row keys and values
+            # Normalize row keys + values
             clean_row = {}
             for k, v in (row or {}).items():
                 nk = _normalize_header(k)
@@ -209,7 +191,7 @@ def import_items_from_csv(file_obj, set_quantities: bool, user=None):
 
             sku = clean_row.get("sku", "").strip()
             if not sku:
-                continue  # skip blank lines
+                continue
 
             name = clean_row.get("name", "").strip() or sku
             price = _to_decimal(clean_row.get("price"), default=Decimal("0.00"))
@@ -244,12 +226,13 @@ def import_items_from_csv(file_obj, set_quantities: bool, user=None):
                 )
                 current_qty = int(bal.quantity or 0)
 
-                delta = target_qty - current_qty
-                if delta != 0:
-                    performed_by = None
-                    if user and getattr(user, "is_authenticated", False):
-                        performed_by = user
+                # Always set the balance directly (this is the key fix)
+                if current_qty != target_qty:
+                    InventoryBalance.objects.filter(pk=bal.pk).update(quantity=target_qty)
 
+                # Optionally create movement history (only if ADJUST exists)
+                delta = target_qty - current_qty
+                if delta != 0 and can_adjust:
                     if delta > 0:
                         InventoryMovement.objects.create(
                             item=obj,
@@ -271,12 +254,7 @@ def import_items_from_csv(file_obj, set_quantities: bool, user=None):
                             performed_by=performed_by,
                         )
 
-                    # Ensure balance matches target even if movement logic changes later
-                    bal.refresh_from_db()
-                    if int(bal.quantity or 0) != target_qty:
-                        InventoryBalance.objects.filter(pk=bal.pk).update(quantity=target_qty)
-
         except Exception as e:
             errors.append(f"Line {idx}: {e}")
 
-    return {"created": created, "updated": updated, "errors": errors}
+    return {"created": created, "updated": updated, "errors": errors, "warnings": warnings}
