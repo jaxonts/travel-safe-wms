@@ -1,0 +1,26 @@
+
+# --- macOS ---
+.DS_Store
+
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# --- Env / secrets ---
+.env
+
+# --- Local DB / logs ---
+db.sqlite3
+nohup.out
+
+# --- Generated static output ---
+staticfiles/
+
+# --- Virtual environments ---
+env/
+venv/
+
+# --- Backups ---
+*.bak.*
