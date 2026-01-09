@@ -24,3 +24,10 @@ venv/
 
 # --- Backups ---
 *.bak.*
+
+# --- macOS everywhere ---
+**/.DS_Store
+
+# --- Virtual envs anywhere (some people keep them nested) ---
+**/env/
+**/venv/
