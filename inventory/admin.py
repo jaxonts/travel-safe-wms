@@ -11,11 +11,9 @@ from .models import Item, InventoryMovement, Bin, Source, InventoryBalance
 # CSV import helper
 from .admin_import import ItemCSVImportForm, import_items_from_csv
 
-
 # ----------------------------
 # Optional: ReportLab (Barcodes)
 # ----------------------------
-# If reportlab isn't installed, Django shouldn't crash.
 REPORTLAB_OK = True
 try:
     from reportlab.pdfgen import canvas
@@ -37,25 +35,18 @@ def _barcode_pdf_response(filename: str) -> HttpResponse:
 
 
 def _draw_label_page(c, title: str, value: str, subtitle: str = ""):
-    """
-    One label per page (simple, reliable for printing).
-    """
     width, height = letter
 
-    # Margins
     x = 0.75 * inch
     top = height - 0.9 * inch
 
-    # Title
     c.setFont("Helvetica-Bold", 16)
     c.drawString(x, top, (title or "")[:60])
 
-    # Subtitle
     if subtitle:
         c.setFont("Helvetica", 10)
         c.drawString(x, top - 0.25 * inch, subtitle)
 
-    # Barcode (Code128 handles letters + numbers, great for SKUs)
     barcode_val = (value or "").strip()
     b = code128.Code128(barcode_val, barHeight=0.9 * inch, barWidth=0.015 * inch)
 
@@ -63,7 +54,6 @@ def _draw_label_page(c, title: str, value: str, subtitle: str = ""):
     by = top - 1.5 * inch
     b.drawOn(c, bx, by)
 
-    # Human-readable text
     c.setFont("Helvetica", 12)
     c.drawString(x, by - 0.25 * inch, barcode_val)
 
@@ -72,10 +62,6 @@ def _draw_label_page(c, title: str, value: str, subtitle: str = ""):
 
 
 def build_labels_pdf(items):
-    """
-    items: list of dicts with {title, value, subtitle, filename}
-    Returns HttpResponse PDF.
-    """
     if not REPORTLAB_OK:
         return HttpResponse(
             "Barcode printing requires reportlab. Install it and redeploy.",
@@ -118,46 +104,23 @@ class InventoryBalanceInline(admin.TabularInline):
 
 @admin.register(Item)
 class ItemAdmin(admin.ModelAdmin):
-    """
-    ✅ Shows bin location based on InventoryBalance (authoritative).
-    ✅ Lets you edit balances inline (manual quantity adjustment).
-    ✅ Generates ADJUST movements automatically when balances change.
-    ✅ Keeps barcode + CSV import/export.
-    """
-    list_display = (
-        "sku",
-        "name",
-        "total_qty",
-        "bin_location_display",
-        "price",
-        "location",
-        "source",
-    )
+    list_display = ("sku", "name", "total_qty", "bin_location_display", "price", "location", "source")
     search_fields = ("sku", "name", "location", "source")
-    list_filter = ("source",)
     actions = ["export_to_csv", "print_item_barcodes_pdf"]
 
     inlines = [InventoryBalanceInline]
-
-    # Import CSV link template
     change_list_template = "admin/item_changelist_with_import.html"
 
     def get_queryset(self, request):
-        """
-        ✅ Prevent N+1 queries in list view.
-        """
+        # Prevent N+1 queries for balances/bin display
         qs = super().get_queryset(request)
-        return qs.prefetch_related("balances", "balances__bin", "balances__bin__location")
+        return qs.prefetch_related("balances__bin", "balances__bin__location")
 
     def total_qty(self, obj):
         return obj.balances.aggregate(total=Sum("quantity"))["total"] or 0
     total_qty.short_description = "Quantity"
 
     def _primary_bin_for_item(self, obj):
-        """
-        Returns the first bin where qty > 0, sorted consistently.
-        If later you want to show ALL bins, we can change this.
-        """
         return (
             obj.balances
             .select_related("bin", "bin__location")
@@ -179,7 +142,6 @@ class ItemAdmin(admin.ModelAdmin):
         writer = csv.writer(response)
         writer.writerow(["SKU", "Name", "Total Quantity", "Bin", "Price", "Location", "Source"])
 
-        # totals per item (fast)
         totals = (
             InventoryBalance.objects.filter(item__in=queryset)
             .values("item_id")
@@ -187,7 +149,6 @@ class ItemAdmin(admin.ModelAdmin):
         )
         totals_map = {row["item_id"]: row["total"] for row in totals}
 
-        # primary bin per item (first bin with qty>0)
         primary_bins = (
             InventoryBalance.objects
             .filter(item__in=queryset, quantity__gt=0)
@@ -233,19 +194,16 @@ class ItemAdmin(admin.ModelAdmin):
 
         return build_labels_pdf(labels)
 
-    # ✅ IMPORTANT: When balances are edited inline, create ADJUST movements.
     def save_formset(self, request, form, formset, change):
         if formset.model is InventoryBalance:
             instances = formset.save(commit=False)
 
-            # deletes
             for obj in formset.deleted_objects:
                 obj.delete()
 
             for inst in instances:
                 item = inst.item
 
-                # old qty from DB (authoritative)
                 old_qty = 0
                 if inst.pk:
                     old_qty = int(InventoryBalance.objects.get(pk=inst.pk).quantity or 0)
@@ -256,7 +214,6 @@ class ItemAdmin(admin.ModelAdmin):
 
                 delta = new_qty - old_qty
 
-                # Save row (ensure it exists)
                 inst.save()
 
                 if delta != 0:
@@ -283,7 +240,6 @@ class ItemAdmin(admin.ModelAdmin):
                             performed_by=performed_by,
                         )
 
-                    # Force exact value as typed
                     InventoryBalance.objects.filter(pk=inst.pk).update(quantity=new_qty)
 
             formset.save_m2m()
@@ -291,14 +247,21 @@ class ItemAdmin(admin.ModelAdmin):
 
         super().save_formset(request, form, formset, change)
 
-    # ---- Single-item barcode and import URLs ----
+    # ✅ THIS is the missing piece: barcode + import urls
     def get_urls(self):
         urls = super().get_urls()
         custom = [
+            # preferred route
             path(
                 "<path:object_id>/barcode/",
                 self.admin_site.admin_view(self.item_barcode_view),
                 name="inventory_item_barcode",
+            ),
+            # support the /change/barcode/ route too (your screenshot shows this one)
+            path(
+                "<path:object_id>/change/barcode/",
+                self.admin_site.admin_view(self.item_barcode_view),
+                name="inventory_item_barcode_change",
             ),
             path(
                 "import-csv/",
@@ -329,7 +292,6 @@ class ItemAdmin(admin.ModelAdmin):
         }]
         return build_labels_pdf(labels)
 
-    # ---- CSV import views ----
     def import_csv_view(self, request):
         if request.method == "POST":
             form = ItemCSVImportForm(request.POST, request.FILES)
@@ -362,10 +324,8 @@ class ItemAdmin(admin.ModelAdmin):
         response = HttpResponse(content_type="text/csv")
         response["Content-Disposition"] = 'attachment; filename="items_import_template.csv"'
         writer = csv.writer(response)
-        writer.writerow(
-            ["sku", "name", "price", "condition", "description", "image_url", "listing_url", "source", "starting_qty"]
-        )
-        writer.writerow(["TSW000001", "Example Item", "19.99", "New", "Example description", "", "", "Manual", "0"])
+        writer.writerow(["sku", "name", "price", "condition", "description", "image_url", "listing_url", "source", "starting_qty"])
+        writer.writerow(["SKU-123", "Example Item", "19.99", "New", "Example description", "", "", "Manual", "0"])
         return response
 
 
@@ -381,7 +341,7 @@ class InventoryBalanceAdmin(admin.ModelAdmin):
 
 
 # ----------------------------
-# Bin Admin (barcodes!)
+# Bin Admin (barcodes)
 # ----------------------------
 
 @admin.register(Bin)
@@ -468,12 +428,8 @@ class InventoryMovementAdmin(admin.ModelAdmin):
     list_filter = ("movement_type", "timestamp")
     search_fields = ("item__sku", "item__name")
 
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.select_related("item", "from_bin", "to_bin", "performed_by", "from_bin__location", "to_bin__location")
-
     def item_display(self, obj):
-        return obj.item.sku if obj.item_id else "Missing Item"
+        return obj.item.sku if obj.item else "Missing Item"
     item_display.short_description = "Item"
 
     def from_bin_display(self, obj):
@@ -490,7 +446,7 @@ class InventoryMovementAdmin(admin.ModelAdmin):
 
 
 # ----------------------------
-# Unassigned Inventory View (balances)
+# Unassigned Inventory View
 # ----------------------------
 
 class CustomAdminSite(admin.AdminSite):
