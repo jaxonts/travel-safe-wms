@@ -118,16 +118,36 @@ class InventoryBalanceInline(admin.TabularInline):
 
 @admin.register(Item)
 class ItemAdmin(admin.ModelAdmin):
-    # IMPORTANT: we do NOT use Item.current_bin anymore.
-    # We show bin location from InventoryBalance (authoritative).
-    list_display = ("sku", "name", "total_qty", "bin_location_display", "price", "location", "source")
+    """
+    ✅ Shows bin location based on InventoryBalance (authoritative).
+    ✅ Lets you edit balances inline (manual quantity adjustment).
+    ✅ Generates ADJUST movements automatically when balances change.
+    ✅ Keeps barcode + CSV import/export.
+    """
+    list_display = (
+        "sku",
+        "name",
+        "total_qty",
+        "bin_location_display",
+        "price",
+        "location",
+        "source",
+    )
     search_fields = ("sku", "name", "location", "source")
+    list_filter = ("source",)
     actions = ["export_to_csv", "print_item_barcodes_pdf"]
 
     inlines = [InventoryBalanceInline]
 
     # Import CSV link template
     change_list_template = "admin/item_changelist_with_import.html"
+
+    def get_queryset(self, request):
+        """
+        ✅ Prevent N+1 queries in list view.
+        """
+        qs = super().get_queryset(request)
+        return qs.prefetch_related("balances", "balances__bin", "balances__bin__location")
 
     def total_qty(self, obj):
         return obj.balances.aggregate(total=Sum("quantity"))["total"] or 0
@@ -167,16 +187,15 @@ class ItemAdmin(admin.ModelAdmin):
         )
         totals_map = {row["item_id"]: row["total"] for row in totals}
 
-        # build primary bin map (fastish, avoids N+1)
+        # primary bin per item (first bin with qty>0)
         primary_bins = (
             InventoryBalance.objects
             .filter(item__in=queryset, quantity__gt=0)
-            .select_related("bin", "bin__location", "item")
+            .select_related("bin", "bin__location")
             .order_by("item_id", "bin__location__name", "bin__code")
         )
         primary_bin_map = {}
         for bal in primary_bins:
-            # first one wins (due to ordering)
             if bal.item_id not in primary_bin_map:
                 primary_bin_map[bal.item_id] = str(bal.bin)
 
@@ -214,20 +233,19 @@ class ItemAdmin(admin.ModelAdmin):
 
         return build_labels_pdf(labels)
 
-    # ✅ When balances are edited inline, create ADJUST movements
-    # so history exists, and ensure balances match typed values.
+    # ✅ IMPORTANT: When balances are edited inline, create ADJUST movements.
     def save_formset(self, request, form, formset, change):
         if formset.model is InventoryBalance:
             instances = formset.save(commit=False)
 
-            # Delete handled normally
+            # deletes
             for obj in formset.deleted_objects:
                 obj.delete()
 
             for inst in instances:
                 item = inst.item
 
-                # old quantity from DB
+                # old qty from DB (authoritative)
                 old_qty = 0
                 if inst.pk:
                     old_qty = int(InventoryBalance.objects.get(pk=inst.pk).quantity or 0)
@@ -238,10 +256,9 @@ class ItemAdmin(admin.ModelAdmin):
 
                 delta = new_qty - old_qty
 
-                # Save the balance row (so it exists)
+                # Save row (ensure it exists)
                 inst.save()
 
-                # Create an ADJUST movement to preserve history
                 if delta != 0:
                     performed_by = request.user if getattr(request.user, "is_authenticated", False) else None
 
@@ -266,13 +283,12 @@ class ItemAdmin(admin.ModelAdmin):
                             performed_by=performed_by,
                         )
 
-                    # Ensure balance matches exactly what user typed
+                    # Force exact value as typed
                     InventoryBalance.objects.filter(pk=inst.pk).update(quantity=new_qty)
 
             formset.save_m2m()
             return
 
-        # fallback for any other formset
         super().save_formset(request, form, formset, change)
 
     # ---- Single-item barcode and import URLs ----
@@ -346,8 +362,10 @@ class ItemAdmin(admin.ModelAdmin):
         response = HttpResponse(content_type="text/csv")
         response["Content-Disposition"] = 'attachment; filename="items_import_template.csv"'
         writer = csv.writer(response)
-        writer.writerow(["sku", "name", "price", "condition", "description", "image_url", "listing_url", "source", "starting_qty"])
-        writer.writerow(["SKU-123", "Example Item", "19.99", "New", "Example description", "", "", "Manual", "0"])
+        writer.writerow(
+            ["sku", "name", "price", "condition", "description", "image_url", "listing_url", "source", "starting_qty"]
+        )
+        writer.writerow(["TSW000001", "Example Item", "19.99", "New", "Example description", "", "", "Manual", "0"])
         return response
 
 
@@ -450,8 +468,12 @@ class InventoryMovementAdmin(admin.ModelAdmin):
     list_filter = ("movement_type", "timestamp")
     search_fields = ("item__sku", "item__name")
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related("item", "from_bin", "to_bin", "performed_by", "from_bin__location", "to_bin__location")
+
     def item_display(self, obj):
-        return obj.item.sku if obj.item else "Missing Item"
+        return obj.item.sku if obj.item_id else "Missing Item"
     item_display.short_description = "Item"
 
     def from_bin_display(self, obj):
