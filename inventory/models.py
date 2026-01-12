@@ -3,6 +3,9 @@ from django.db.models import F
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
 
+import secrets
+import string
+
 
 class Source(models.Model):
     name = models.CharField(max_length=100)
@@ -43,7 +46,10 @@ class Item(models.Model):
     )
 
     name = models.CharField(max_length=255)
-    sku = models.CharField(max_length=100, unique=True)
+
+    # ✅ UPDATED: allow blank so SKU can be auto-generated
+    # NOTE: unique fields with blank=True can still be empty; using null=True avoids unique collisions on empty string.
+    sku = models.CharField(max_length=100, unique=True, null=True, blank=True)
 
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     description = models.TextField(blank=True)
@@ -60,13 +66,52 @@ class Item(models.Model):
     # If you want, we can convert this to a FK later.
     source = models.CharField(max_length=100, default="eBay", choices=SOURCE_CHOICES)
 
+    # Current bin for quick display in Item list/admin.
+    # This does NOT replace balances. It’s just “last known / primary bin”.
+    current_bin = models.ForeignKey(
+        Bin,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="current_items",
+    )
+
     def __str__(self):
-        return f"{self.sku} - {self.name}"
+        return f"{self.sku or '(no sku)'} - {self.name}"
 
     @property
     def total_quantity(self) -> int:
         # Convenience for templates/admin; avoid using in huge list pages.
         return int(self.balances.aggregate(total=models.Sum("quantity"))["total"] or 0)
+
+    # ----------------------------
+    # ✅ SKU Generator
+    # ----------------------------
+    @staticmethod
+    def _generate_sku(prefix: str = "TSW", digits: int = 6) -> str:
+        """
+        Generates random SKU like TSW123456.
+        """
+        alphabet = string.digits
+        return prefix + "".join(secrets.choice(alphabet) for _ in range(digits))
+
+    @classmethod
+    def generate_unique_sku(cls, prefix: str = "TSW", digits: int = 6, max_tries: int = 50) -> str:
+        """
+        Generates a SKU and confirms it's unique in the DB.
+        Retries up to max_tries to avoid rare collisions.
+        """
+        for _ in range(max_tries):
+            candidate = cls._generate_sku(prefix=prefix, digits=digits)
+            if not cls.objects.filter(sku=candidate).exists():
+                return candidate
+        raise RuntimeError("Could not generate a unique SKU after many attempts.")
+
+    def save(self, *args, **kwargs):
+        # ✅ Auto-generate SKU if not provided
+        if not self.sku:
+            self.sku = Item.generate_unique_sku(prefix="TSW", digits=6)
+        super().save(*args, **kwargs)
 
     class Meta:
         ordering = ["sku"]
@@ -127,7 +172,8 @@ class InventoryMovement(models.Model):
     note = models.TextField(blank=True)
 
     def __str__(self):
-        return f"{self.movement_type} - {self.quantity} of {self.item.sku}"
+        sku = self.item.sku if self.item_id else "UNKNOWN"
+        return f"{self.movement_type} - {self.quantity} of {sku}"
 
     def clean(self):
         super().clean()
@@ -155,7 +201,9 @@ class InventoryMovement(models.Model):
             # For ADJUST you can choose either from_bin (negative adjustment) or to_bin (positive adjustment)
             # but not both at once to keep it unambiguous.
             if self.from_bin and self.to_bin:
-                raise ValidationError("ADJUST should use either from_bin (decrease) OR to_bin (increase), not both.")
+                raise ValidationError(
+                    "ADJUST should use either from_bin (decrease) OR to_bin (increase), not both."
+                )
             if not self.from_bin and not self.to_bin:
                 raise ValidationError("ADJUST requires from_bin (decrease) or to_bin (increase).")
 
@@ -201,10 +249,10 @@ class InventoryMovement(models.Model):
             return super().save(*args, **kwargs)
 
         with transaction.atomic():
-            # Apply inventory effects
             mt = self.movement_type
             qty = int(self.quantity)
 
+            # Apply inventory effects
             if mt in ("RECEIVE", "RETURN"):
                 self._increase(self.item, self.to_bin, qty)
 
@@ -221,6 +269,12 @@ class InventoryMovement(models.Model):
                     self._decrease(self.item, self.from_bin, qty)
                 else:
                     self._increase(self.item, self.to_bin, qty)
+
+            # ✅ Update "current_bin" so Items page can show bin
+            if self.to_bin:
+                Item.objects.filter(pk=self.item_id).update(current_bin=self.to_bin)
+            elif mt == "PICK":
+                Item.objects.filter(pk=self.item_id).update(current_bin=None)
 
             return super().save(*args, **kwargs)
 
