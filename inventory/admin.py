@@ -18,7 +18,6 @@ REPORTLAB_OK = True
 try:
     from reportlab.pdfgen import canvas
     from reportlab.lib.units import inch
-    from reportlab.lib.units import inch
     from reportlab.graphics.barcode import code128
 except Exception:
     REPORTLAB_OK = False
@@ -32,9 +31,10 @@ def _barcode_pdf_response(filename: str) -> HttpResponse:
     resp = HttpResponse(content_type="application/pdf")
     resp["Content-Disposition"] = f'inline; filename="{filename}"'
     return resp
-    
+
+
 def _draw_label_page(c, title: str, value: str, subtitle: str = ""):
-       width, height = (4 * inch, 6 * inch)
+    width, height = (4 * inch, 6 * inch)
 
     x = 0.75 * inch
     top = height - 0.9 * inch
@@ -48,10 +48,10 @@ def _draw_label_page(c, title: str, value: str, subtitle: str = ""):
 
     barcode_val = (value or "").strip()
     b = code128.Code128(
-    barcode_val,
-    barHeight=0.6 * inch,
-    barWidth=0.012 * inch
-)
+        barcode_val,
+        barHeight=0.6 * inch,
+        barWidth=0.012 * inch,
+    )
 
     bx = x
     by = top - 1.5 * inch
@@ -74,7 +74,7 @@ def build_labels_pdf(items):
 
     filename = items[0].get("filename", "labels.pdf") if items else "labels.pdf"
     resp = _barcode_pdf_response(filename)
-        c = canvas.Canvas(resp, pagesize=(4 * inch, 6 * inch))
+    c = canvas.Canvas(resp, pagesize=(4 * inch, 6 * inch))
 
     for it in items:
         _draw_label_page(
@@ -115,12 +115,12 @@ class ItemAdmin(admin.ModelAdmin):
     change_list_template = "admin/item_changelist_with_import.html"
 
     def get_queryset(self, request):
-        # Prevent N+1 queries for balances/bin display
         qs = super().get_queryset(request)
         return qs.prefetch_related("balances__bin", "balances__bin__location")
 
     def total_qty(self, obj):
         return obj.balances.aggregate(total=Sum("quantity"))["total"] or 0
+
     total_qty.short_description = "Quantity"
 
     def _primary_bin_for_item(self, obj):
@@ -135,6 +135,7 @@ class ItemAdmin(admin.ModelAdmin):
     def bin_location_display(self, obj):
         bal = self._primary_bin_for_item(obj)
         return str(bal.bin) if bal else "-"
+
     bin_location_display.short_description = "Bin"
 
     @admin.action(description="Export selected items to CSV")
@@ -158,6 +159,7 @@ class ItemAdmin(admin.ModelAdmin):
             .select_related("bin", "bin__location")
             .order_by("item_id", "bin__location__name", "bin__code")
         )
+
         primary_bin_map = {}
         for bal in primary_bins:
             if bal.item_id not in primary_bin_map:
@@ -216,7 +218,6 @@ class ItemAdmin(admin.ModelAdmin):
                     new_qty = 0
 
                 delta = new_qty - old_qty
-
                 inst.save()
 
                 if delta != 0:
@@ -250,17 +251,14 @@ class ItemAdmin(admin.ModelAdmin):
 
         super().save_formset(request, form, formset, change)
 
-    # ✅ THIS is the missing piece: barcode + import urls
     def get_urls(self):
         urls = super().get_urls()
         custom = [
-            # preferred route
             path(
                 "<path:object_id>/barcode/",
                 self.admin_site.admin_view(self.item_barcode_view),
                 name="inventory_item_barcode",
             ),
-            # support the /change/barcode/ route too (your screenshot shows this one)
             path(
                 "<path:object_id>/change/barcode/",
                 self.admin_site.admin_view(self.item_barcode_view),
@@ -326,9 +324,31 @@ class ItemAdmin(admin.ModelAdmin):
     def import_template_view(self, request):
         response = HttpResponse(content_type="text/csv")
         response["Content-Disposition"] = 'attachment; filename="items_import_template.csv"'
+
         writer = csv.writer(response)
-        writer.writerow(["sku", "name", "price", "condition", "description", "image_url", "listing_url", "source", "starting_qty"])
-        writer.writerow(["SKU-123", "Example Item", "19.99", "New", "Example description", "", "", "Manual", "0"])
+        writer.writerow([
+            "sku",
+            "name",
+            "price",
+            "condition",
+            "description",
+            "image_url",
+            "listing_url",
+            "source",
+            "starting_qty",
+        ])
+        writer.writerow([
+            "SKU-123",
+            "Example Item",
+            "19.99",
+            "New",
+            "Example description",
+            "",
+            "",
+            "Manual",
+            "0",
+        ])
+
         return response
 
 
@@ -344,7 +364,7 @@ class InventoryBalanceAdmin(admin.ModelAdmin):
 
 
 # ----------------------------
-# Bin Admin (barcodes)
+# Bin Admin Barcodes
 # ----------------------------
 
 @admin.register(Bin)
@@ -433,18 +453,22 @@ class InventoryMovementAdmin(admin.ModelAdmin):
 
     def item_display(self, obj):
         return obj.item.sku if obj.item else "Missing Item"
+
     item_display.short_description = "Item"
 
     def from_bin_display(self, obj):
         return str(obj.from_bin) if obj.from_bin else "-"
+
     from_bin_display.short_description = "From Bin"
 
     def to_bin_display(self, obj):
         return str(obj.to_bin) if obj.to_bin else "-"
+
     to_bin_display.short_description = "To Bin"
 
     def user_display(self, obj):
         return obj.performed_by.username if obj.performed_by else "-"
+
     user_display.short_description = "User"
 
 
@@ -467,13 +491,14 @@ class CustomAdminSite(admin.AdminSite):
     @staff_member_required
     def unassigned_inventory_view(self, request):
         items_qs = Item.objects.annotate(total=Sum("balances__quantity"))
-        items = (items_qs.filter(total__isnull=True) | items_qs.filter(total=0))
+        items = items_qs.filter(total__isnull=True) | items_qs.filter(total=0)
 
         context = dict(
             self.each_context(request),
             items=items,
             title="Unassigned Inventory",
         )
+
         return TemplateResponse(request, "admin/unassigned_inventory.html", context)
 
 
