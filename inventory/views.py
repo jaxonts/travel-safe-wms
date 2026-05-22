@@ -1,6 +1,20 @@
 from rest_framework import viewsets
-from .models import Source, Bin, Item, InventoryMovement
-from .serializers import SourceSerializer, BinSerializer, ItemSerializer, InventoryMovementSerializer
+from django.db.models import Sum
+
+from .models import (
+    Source,
+    Bin,
+    Item,
+    InventoryMovement,
+    InventoryBalance,
+)
+from .serializers import (
+    SourceSerializer,
+    BinSerializer,
+    ItemSerializer,
+    InventoryMovementSerializer,
+    InventoryBalanceSerializer,
+)
 
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
@@ -14,53 +28,81 @@ import requests
 import urllib.parse
 import base64
 
-# --------------------------
-# WMS API Views
-# --------------------------
+# =====================================================
+# WMS API VIEWS (REST)
+# =====================================================
 
 class SourceViewSet(viewsets.ModelViewSet):
     queryset = Source.objects.all()
     serializer_class = SourceSerializer
 
+
 class BinViewSet(viewsets.ModelViewSet):
-    queryset = Bin.objects.all()
+    queryset = Bin.objects.select_related("location").all()
     serializer_class = BinSerializer
+
 
 class ItemViewSet(viewsets.ModelViewSet):
     queryset = Item.objects.all()
     serializer_class = ItemSerializer
 
+
+class InventoryBalanceViewSet(viewsets.ModelViewSet):
+    queryset = InventoryBalance.objects.select_related(
+        "item", "bin", "bin__location"
+    ).all()
+    serializer_class = InventoryBalanceSerializer
+
+
 class InventoryMovementViewSet(viewsets.ModelViewSet):
-    queryset = InventoryMovement.objects.all()
+    queryset = InventoryMovement.objects.select_related(
+        "item", "from_bin", "to_bin", "performed_by"
+    ).all()
     serializer_class = InventoryMovementSerializer
 
     def perform_create(self, serializer):
-        item = serializer.validated_data['item']
-        from_bin = item.bin
-        movement = serializer.save(from_bin=from_bin)
-        item.bin = movement.to_bin
-        item.save()
+        # IMPORTANT:
+        # InventoryMovement.save() already updates InventoryBalance.
+        # Do NOT mutate Item or infer bins here.
+        serializer.save(
+            performed_by=self.request.user
+            if self.request.user.is_authenticated
+            else None
+        )
 
-# --------------------------
-# Dashboard View
-# --------------------------
+# =====================================================
+# DASHBOARD VIEW
+# =====================================================
 
 @login_required
 def dashboard(request):
-    return render(request, 'dashboard.html')
+    return render(request, "dashboard.html")
 
-# --------------------------
-# Unassigned Inventory View
-# --------------------------
+# =====================================================
+# UNASSIGNED INVENTORY VIEW (ADMIN)
+# =====================================================
 
 @staff_member_required
 def unassigned_inventory_view(request):
-    items = Item.objects.filter(bin__isnull=True)
-    return render(request, 'admin/unassigned_inventory.html', {'items': items})
+    # "Unassigned" = item has no inventory balances at all
+    items = Item.objects.filter(balances__isnull=True).distinct()
 
-# --------------------------
-# eBay Webhook Challenge Handler
-# --------------------------
+    # Alternative definition (commented):
+    # items = (
+    #     Item.objects.annotate(total=Sum("balances__quantity"))
+    #     .filter(total__isnull=True)
+    #     | Item.objects.annotate(total=Sum("balances__quantity")).filter(total=0)
+    # )
+
+    return render(
+        request,
+        "admin/unassigned_inventory.html",
+        {"items": items},
+    )
+
+# =====================================================
+# EBAY WEBHOOK CHALLENGE HANDLER
+# =====================================================
 
 @csrf_exempt
 def ebay_notifications(request):
@@ -68,9 +110,10 @@ def ebay_notifications(request):
         challenge = request.GET.get("challenge")
         if challenge:
             return HttpResponse(challenge, content_type="text/plain")
+
     elif request.method == "POST":
         try:
-            data = json.loads(request.body.decode('utf-8'))
+            data = json.loads(request.body.decode("utf-8"))
             challenge = data.get("challenge")
             if challenge:
                 return HttpResponse(challenge, content_type="text/plain")
@@ -79,9 +122,9 @@ def ebay_notifications(request):
 
     return HttpResponse("Invalid", status=400)
 
-# --------------------------
-# eBay OAuth Callback
-# --------------------------
+# =====================================================
+# EBAY OAUTH CALLBACK
+# =====================================================
 
 @csrf_exempt
 def ebay_oauth_callback(request):
@@ -105,44 +148,56 @@ def ebay_oauth_callback(request):
     }
 
     try:
-        response = requests.post(token_url, headers=headers, data=urllib.parse.urlencode(data))
+        response = requests.post(
+            token_url, headers=headers, data=urllib.parse.urlencode(data)
+        )
         if response.status_code == 200:
             return JsonResponse(response.json())
         else:
-            return JsonResponse({
-                "error": "Token exchange failed",
-                "status_code": response.status_code,
-                "details": response.json()
-            }, status=400)
+            return JsonResponse(
+                {
+                    "error": "Token exchange failed",
+                    "status_code": response.status_code,
+                    "details": response.json(),
+                },
+                status=400,
+            )
     except Exception as e:
-        return JsonResponse({
-            "error": "Exception during token exchange",
-            "message": str(e)
-        }, status=500)
+        return JsonResponse(
+            {
+                "error": "Exception during token exchange",
+                "message": str(e),
+            },
+            status=500,
+        )
 
-# --------------------------
-# eBay Token Refresh Helper
-# --------------------------
+# =====================================================
+# EBAY TOKEN REFRESH HELPER
+# =====================================================
 
 def refresh_ebay_token():
     url = "https://api.ebay.com/identity/v1/oauth2/token"
     headers = {
         "Authorization": f"Basic {settings.EBAY_BASE64_ENCODED_CREDENTIALS}",
-        "Content-Type": "application/x-www-form-urlencoded"
+        "Content-Type": "application/x-www-form-urlencoded",
     }
     data = {
         "grant_type": "refresh_token",
         "refresh_token": settings.EBAY_REFRESH_TOKEN,
-        "scope": "https://api.ebay.com/oauth/api_scope https://api.ebay.com/oauth/api_scope/sell.inventory.readonly"
+        "scope": (
+            "https://api.ebay.com/oauth/api_scope "
+            "https://api.ebay.com/oauth/api_scope/sell.inventory.readonly"
+        ),
     }
+
     response = requests.post(url, headers=headers, data=data)
     if response.status_code == 200:
         return response.json().get("access_token")
     return None
 
-# --------------------------
-# eBay Active Inventory Sync
-# --------------------------
+# =====================================================
+# EBAY ACTIVE INVENTORY SYNC (CATALOG ONLY)
+# =====================================================
 
 @csrf_exempt
 def ebay_active_inventory(request):
@@ -157,17 +212,20 @@ def ebay_active_inventory(request):
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json",
-        "Accept": "application/json"
+        "Accept": "application/json",
     }
 
     try:
         response = requests.get(url, headers=headers)
         if response.status_code != 200:
-            return JsonResponse({
-                "error": "Failed to fetch inventory",
-                "status": response.status_code,
-                "details": response.json()
-            }, status=400)
+            return JsonResponse(
+                {
+                    "error": "Failed to fetch inventory",
+                    "status": response.status_code,
+                    "details": response.json(),
+                },
+                status=400,
+            )
 
         inventory = response.json()
         results = []
@@ -177,20 +235,27 @@ def ebay_active_inventory(request):
             sku = item.get("sku")
             if not sku:
                 continue
+
             obj, created = Item.objects.update_or_create(
                 sku=sku,
-                defaults={"name": title}
+                defaults={"name": title},
             )
-            results.append({
-                "sku": sku,
-                "name": title,
-                "status": "created" if created else "updated"
-            })
+
+            results.append(
+                {
+                    "sku": sku,
+                    "name": title,
+                    "status": "created" if created else "updated",
+                }
+            )
 
         return JsonResponse(results, safe=False)
 
     except Exception as e:
-        return JsonResponse({
-            "error": "Unexpected error occurred",
-            "message": str(e)
-        }, status=500)
+        return JsonResponse(
+            {
+                "error": "Unexpected error occurred",
+                "message": str(e),
+            },
+            status=500,
+        )

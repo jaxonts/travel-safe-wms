@@ -17,7 +17,7 @@ from .admin_import import ItemCSVImportForm, import_items_from_csv
 REPORTLAB_OK = True
 try:
     from reportlab.pdfgen import canvas
-    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.units import inch
     from reportlab.lib.units import inch
     from reportlab.graphics.barcode import code128
 except Exception:
@@ -35,7 +35,7 @@ def _barcode_pdf_response(filename: str) -> HttpResponse:
 
 
 def _draw_label_page(c, title: str, value: str, subtitle: str = ""):
-    width, height = letter
+       width, height = (4 * inch, 6 * inch)
 
     x = 0.75 * inch
     top = height - 0.9 * inch
@@ -48,7 +48,11 @@ def _draw_label_page(c, title: str, value: str, subtitle: str = ""):
         c.drawString(x, top - 0.25 * inch, subtitle)
 
     barcode_val = (value or "").strip()
-    b = code128.Code128(barcode_val, barHeight=0.9 * inch, barWidth=0.015 * inch)
+    b = code128.Code128(
+    barcode_val,
+    barHeight=0.6 * inch,
+    barWidth=0.012 * inch
+)
 
     bx = x
     by = top - 1.5 * inch
@@ -71,7 +75,7 @@ def build_labels_pdf(items):
 
     filename = items[0].get("filename", "labels.pdf") if items else "labels.pdf"
     resp = _barcode_pdf_response(filename)
-    c = canvas.Canvas(resp, pagesize=letter)
+        c = canvas.Canvas(resp, pagesize=(4 * inch, 6 * inch))
 
     for it in items:
         _draw_label_page(
