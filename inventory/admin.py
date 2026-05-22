@@ -8,12 +8,8 @@ import csv
 
 from .models import Item, InventoryMovement, Bin, Source, InventoryBalance
 
-# CSV import helper
 from .admin_import import ItemCSVImportForm, import_items_from_csv
 
-# ----------------------------
-# Optional: ReportLab (Barcodes)
-# ----------------------------
 REPORTLAB_OK = True
 try:
     from reportlab.pdfgen import canvas
@@ -23,9 +19,9 @@ except Exception:
     REPORTLAB_OK = False
 
 
-# ----------------------------
-# PDF Barcode Helpers
-# ----------------------------
+LABEL_WIDTH = 2 * inch
+LABEL_HEIGHT = 1 * inch
+
 
 def _barcode_pdf_response(filename: str) -> HttpResponse:
     resp = HttpResponse(content_type="application/pdf")
@@ -34,34 +30,30 @@ def _barcode_pdf_response(filename: str) -> HttpResponse:
 
 
 def _draw_label_page(c, title: str, value: str, subtitle: str = ""):
-    width, height = (4 * inch, 6 * inch)
+    x = 0.08 * inch
+    top = LABEL_HEIGHT - 0.12 * inch
 
-    x = 0.75 * inch
-    top = height - 0.9 * inch
-
-    c.setFont("Helvetica-Bold", 16)
-    c.drawString(x, top, (title or "")[:60])
+    c.setFont("Helvetica-Bold", 7)
+    c.drawString(x, top, (title or "")[:30])
 
     if subtitle:
-        c.setFont("Helvetica", 10)
-        c.drawString(x, top - 0.25 * inch, subtitle)
+        c.setFont("Helvetica", 5)
+        c.drawString(x, top - 0.10 * inch, subtitle)
 
     barcode_val = (value or "").strip()
+
     b = code128.Code128(
         barcode_val,
-        barHeight=0.6 * inch,
-        barWidth=0.012 * inch,
+        barHeight=0.34 * inch,
+        barWidth=0.0085 * inch,
     )
 
     bx = x
-    by = top - 1.5 * inch
+    by = 0.28 * inch
     b.drawOn(c, bx, by)
 
-    c.setFont("Helvetica", 12)
-    c.drawString(x, by - 0.25 * inch, barcode_val)
-
-    c.setFont("Helvetica-Oblique", 9)
-    c.drawString(x, 0.6 * inch, "Tip: scan this, then scan a BIN barcode to assign/move.")
+    c.setFont("Helvetica", 6)
+    c.drawString(x, by - 0.09 * inch, barcode_val)
 
 
 def build_labels_pdf(items):
@@ -74,7 +66,7 @@ def build_labels_pdf(items):
 
     filename = items[0].get("filename", "labels.pdf") if items else "labels.pdf"
     resp = _barcode_pdf_response(filename)
-    c = canvas.Canvas(resp, pagesize=(4 * inch, 6 * inch))
+    c = canvas.Canvas(resp, pagesize=(LABEL_WIDTH, LABEL_HEIGHT))
 
     for it in items:
         _draw_label_page(
@@ -89,10 +81,6 @@ def build_labels_pdf(items):
     return resp
 
 
-# ----------------------------
-# Inline: Balances on Item page
-# ----------------------------
-
 class InventoryBalanceInline(admin.TabularInline):
     model = InventoryBalance
     extra = 0
@@ -101,16 +89,11 @@ class InventoryBalanceInline(admin.TabularInline):
     ordering = ("bin__location__name", "bin__code")
 
 
-# ----------------------------
-# Item Admin
-# ----------------------------
-
 @admin.register(Item)
 class ItemAdmin(admin.ModelAdmin):
     list_display = ("sku", "name", "total_qty", "bin_location_display", "price", "location", "source")
     search_fields = ("sku", "name", "location", "source")
     actions = ["export_to_csv", "print_item_barcodes_pdf"]
-
     inlines = [InventoryBalanceInline]
     change_list_template = "admin/item_changelist_with_import.html"
 
@@ -352,20 +335,12 @@ class ItemAdmin(admin.ModelAdmin):
         return response
 
 
-# ----------------------------
-# Inventory Balance Admin
-# ----------------------------
-
 @admin.register(InventoryBalance)
 class InventoryBalanceAdmin(admin.ModelAdmin):
     list_display = ("item", "bin", "quantity")
     search_fields = ("item__sku", "item__name", "bin__code", "bin__location__name")
     list_filter = ("bin__location", "bin")
 
-
-# ----------------------------
-# Bin Admin Barcodes
-# ----------------------------
 
 @admin.register(Bin)
 class BinAdmin(admin.ModelAdmin):
@@ -423,19 +398,11 @@ class BinAdmin(admin.ModelAdmin):
         return build_labels_pdf(labels)
 
 
-# ----------------------------
-# Source Admin
-# ----------------------------
-
 @admin.register(Source)
 class SourceAdmin(admin.ModelAdmin):
     list_display = ("name", "address", "is_main_facility")
     search_fields = ("name",)
 
-
-# ----------------------------
-# Inventory Movement Admin
-# ----------------------------
 
 @admin.register(InventoryMovement)
 class InventoryMovementAdmin(admin.ModelAdmin):
@@ -471,10 +438,6 @@ class InventoryMovementAdmin(admin.ModelAdmin):
 
     user_display.short_description = "User"
 
-
-# ----------------------------
-# Unassigned Inventory View
-# ----------------------------
 
 class CustomAdminSite(admin.AdminSite):
     def get_urls(self):
