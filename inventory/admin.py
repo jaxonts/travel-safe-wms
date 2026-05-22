@@ -32,8 +32,7 @@ def _barcode_pdf_response(filename: str) -> HttpResponse:
     resp = HttpResponse(content_type="application/pdf")
     resp["Content-Disposition"] = f'inline; filename="{filename}"'
     return resp
-
-
+    
 def _draw_label_page(c, title: str, value: str, subtitle: str = ""):
        width, height = (4 * inch, 6 * inch)
 
