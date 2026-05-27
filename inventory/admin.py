@@ -7,10 +7,11 @@ from django.db.models import Sum
 import csv
 
 from .models import Item, InventoryMovement, Bin, Source, InventoryBalance
-
 from .admin_import import ItemCSVImportForm, import_items_from_csv
 
+
 REPORTLAB_OK = True
+
 try:
     from reportlab.pdfgen import canvas
     from reportlab.lib.units import inch
@@ -19,6 +20,7 @@ except Exception:
     REPORTLAB_OK = False
 
 
+# 2 inch wide x 1 inch tall labels = horizontal / landscape
 LABEL_WIDTH = 2 * inch
 LABEL_HEIGHT = 1 * inch
 
@@ -98,7 +100,7 @@ class ItemAdmin(admin.ModelAdmin):
     change_list_template = "admin/item_changelist_with_import.html"
 
     def get_queryset(self, request):
-        qs = super().get_queryset(request)
+        qs = super().get_queryset()
         return qs.prefetch_related("balances__bin", "balances__bin__location")
 
     def total_qty(self, obj):
