@@ -6,70 +6,141 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.db.models import Sum
 import csv
 
-from .models import Item, InventoryMovement, Bin, Source, InventoryBalance
-from .admin_import import ItemCSVImportForm, import_items_from_csv
+from .models import (
+    Item,
+    InventoryMovement,
+    Bin,
+    Source,
+    InventoryBalance,
+)
+
+from .admin_import import (
+    ItemCSVImportForm,
+    import_items_from_csv,
+)
 
 REPORTLAB_OK = True
 
 try:
     from reportlab.pdfgen import canvas
-    from reportlab.lib.units import inch
+    from reportlab.lib.units import mm
     from reportlab.graphics.barcode import code128
 except Exception:
     REPORTLAB_OK = False
 
 
-# ---------------------------------------------------
-# 2in x 1in HORIZONTAL / LANDSCAPE LABELS
-# ---------------------------------------------------
+# =========================================================
+# 50mm x 30mm LABELS (Landscape / Horizontal)
+# =========================================================
 
-LABEL_WIDTH = 2 * inch
-LABEL_HEIGHT = 1 * inch
+LABEL_WIDTH = 50 * mm
+LABEL_HEIGHT = 30 * mm
 
 
-# ---------------------------------------------------
+# =========================================================
 # PDF HELPERS
-# ---------------------------------------------------
+# =========================================================
 
 def _barcode_pdf_response(filename: str) -> HttpResponse:
     response = HttpResponse(content_type="application/pdf")
-    response["Content-Disposition"] = f'inline; filename="{filename}"'
+    response["Content-Disposition"] = (
+        f'inline; filename="{filename}"'
+    )
     return response
 
 
-def _draw_label_page(c, title: str, value: str, subtitle: str = ""):
-    x = 0.08 * inch
-    top = LABEL_HEIGHT - 0.12 * inch
+def _centered_text(
+    c,
+    text,
+    y,
+    font_name="Helvetica",
+    font_size=6,
+):
+    text = text or ""
 
-    # TITLE
-    c.setFont("Helvetica-Bold", 7)
-    c.drawString(x, top, (title or "")[:30])
+    c.setFont(font_name, font_size)
 
-    # SUBTITLE
-    if subtitle:
-        c.setFont("Helvetica", 5)
-        c.drawString(x, top - 0.10 * inch, subtitle)
-
-    barcode_val = (value or "").strip()
-
-    # BARCODE
-    barcode = code128.Code128(
-        barcode_val,
-        barHeight=0.34 * inch,
-        barWidth=0.0085 * inch,
+    text_width = c.stringWidth(
+        text,
+        font_name,
+        font_size,
     )
 
-    bx = x
-    by = 0.28 * inch
+    x = (LABEL_WIDTH - text_width) / 2
+
+    c.drawString(x, y, text)
+
+
+def _draw_label_page(
+    c,
+    title: str,
+    value: str,
+    subtitle: str = "",
+):
+    barcode_val = (value or "").strip()
+
+    title = (title or "")[:28]
+    subtitle = (subtitle or "")[:18]
+
+    # -----------------------------------------------------
+    # TITLE
+    # -----------------------------------------------------
+
+    _centered_text(
+        c,
+        title,
+        LABEL_HEIGHT - 5 * mm,
+        "Helvetica-Bold",
+        5,
+    )
+
+    # -----------------------------------------------------
+    # SUBTITLE
+    # -----------------------------------------------------
+
+    if subtitle:
+
+        _centered_text(
+            c,
+            subtitle,
+            LABEL_HEIGHT - 8 * mm,
+            "Helvetica",
+            4,
+        )
+
+    # -----------------------------------------------------
+    # BARCODE
+    # -----------------------------------------------------
+
+    barcode = code128.Code128(
+        barcode_val,
+        barHeight=13 * mm,
+        barWidth=0.42 * mm,
+    )
+
+    barcode_width = barcode.width
+
+    bx = (LABEL_WIDTH - barcode_width) / 2
+
+    by = 8 * mm
 
     barcode.drawOn(c, bx, by)
 
+    # -----------------------------------------------------
     # BARCODE TEXT
-    c.setFont("Helvetica", 6)
-    c.drawString(x, by - 0.09 * inch, barcode_val)
+    # -----------------------------------------------------
+
+    _centered_text(
+        c,
+        barcode_val,
+        4 * mm,
+        "Helvetica",
+        5,
+    )
 
 
 def build_labels_pdf(items):
+
     if not REPORTLAB_OK:
         return HttpResponse(
             "Barcode printing requires reportlab.",
@@ -77,7 +148,11 @@ def build_labels_pdf(items):
             content_type="text/plain",
         )
 
-    filename = items[0].get("filename", "labels.pdf") if items else "labels.pdf"
+    filename = (
+        items[0].get("filename", "labels.pdf")
+        if items
+        else "labels.pdf"
+    )
 
     response = _barcode_pdf_response(filename)
 
@@ -87,6 +162,7 @@ def build_labels_pdf(items):
     )
 
     for item in items:
+
         _draw_label_page(
             c,
             title=item.get("title", ""),
@@ -101,21 +177,32 @@ def build_labels_pdf(items):
     return response
 
 
-# ---------------------------------------------------
+# =========================================================
 # INLINE BALANCES
-# ---------------------------------------------------
+# =========================================================
 
 class InventoryBalanceInline(admin.TabularInline):
+
     model = InventoryBalance
+
     extra = 0
+
     autocomplete_fields = ["bin"]
-    fields = ("bin", "quantity")
-    ordering = ("bin__location__name", "bin__code")
+
+    fields = (
+        "bin",
+        "quantity",
+    )
+
+    ordering = (
+        "bin__location__name",
+        "bin__code",
+    )
 
 
-# ---------------------------------------------------
+# =========================================================
 # ITEM ADMIN
-# ---------------------------------------------------
+# =========================================================
 
 @admin.register(Item)
 class ItemAdmin(admin.ModelAdmin):
@@ -144,9 +231,12 @@ class ItemAdmin(admin.ModelAdmin):
 
     inlines = [InventoryBalanceInline]
 
-    change_list_template = "admin/item_changelist_with_import.html"
+    change_list_template = (
+        "admin/item_changelist_with_import.html"
+    )
 
     def get_queryset(self, request):
+
         qs = super().get_queryset(request)
 
         return qs.prefetch_related(
@@ -155,16 +245,24 @@ class ItemAdmin(admin.ModelAdmin):
         )
 
     def total_qty(self, obj):
-        return obj.balances.aggregate(
-            total=Sum("quantity")
-        )["total"] or 0
+
+        return (
+            obj.balances.aggregate(
+                total=Sum("quantity")
+            )["total"]
+            or 0
+        )
 
     total_qty.short_description = "Quantity"
 
     def _primary_bin_for_item(self, obj):
+
         return (
             obj.balances
-            .select_related("bin", "bin__location")
+            .select_related(
+                "bin",
+                "bin__location",
+            )
             .filter(quantity__gt=0)
             .order_by(
                 "bin__location__name",
@@ -174,11 +272,16 @@ class ItemAdmin(admin.ModelAdmin):
         )
 
     def bin_location_display(self, obj):
+
         bal = self._primary_bin_for_item(obj)
 
         return str(bal.bin) if bal else "-"
 
     bin_location_display.short_description = "Bin"
+
+    # =====================================================
+    # EXPORT CSV
+    # =====================================================
 
     @admin.action(description="Export selected items to CSV")
     def export_to_csv(self, request, queryset):
@@ -233,10 +336,14 @@ class ItemAdmin(admin.ModelAdmin):
         primary_bin_map = {}
 
         for bal in primary_bins:
+
             if bal.item_id not in primary_bin_map:
-                primary_bin_map[bal.item_id] = str(bal.bin)
+                primary_bin_map[bal.item_id] = str(
+                    bal.bin
+                )
 
         for item in queryset:
+
             writer.writerow([
                 item.sku,
                 item.name,
@@ -249,15 +356,27 @@ class ItemAdmin(admin.ModelAdmin):
 
         return response
 
-    @admin.action(description="Print barcode labels (PDF) for selected items")
-    def print_item_barcodes_pdf(self, request, queryset):
+    # =====================================================
+    # PRINT ITEM LABELS
+    # =====================================================
+
+    @admin.action(
+        description="Print barcode labels (PDF) for selected items"
+    )
+    def print_item_barcodes_pdf(
+        self,
+        request,
+        queryset,
+    ):
 
         if not REPORTLAB_OK:
+
             self.message_user(
                 request,
                 "Barcode printing requires reportlab.",
                 level=messages.ERROR,
             )
+
             return None
 
         labels = []
@@ -272,14 +391,20 @@ class ItemAdmin(admin.ModelAdmin):
             })
 
         if not labels:
+
             self.message_user(
                 request,
                 "No items selected.",
                 level=messages.WARNING,
             )
+
             return None
 
         return build_labels_pdf(labels)
+
+    # =====================================================
+    # URLS
+    # =====================================================
 
     def get_urls(self):
 
@@ -322,17 +447,30 @@ class ItemAdmin(admin.ModelAdmin):
 
         return custom + urls
 
-    def item_barcode_view(self, request, object_id):
+    # =====================================================
+    # ITEM BARCODE VIEW
+    # =====================================================
+
+    def item_barcode_view(
+        self,
+        request,
+        object_id,
+    ):
 
         if not REPORTLAB_OK:
+
             return HttpResponse(
                 "Barcode printing requires reportlab.",
                 status=500,
             )
 
-        obj = self.get_object(request, object_id)
+        obj = self.get_object(
+            request,
+            object_id,
+        )
 
         if not obj:
+
             return HttpResponse(
                 "Item not found",
                 status=404,
@@ -346,6 +484,10 @@ class ItemAdmin(admin.ModelAdmin):
         }]
 
         return build_labels_pdf(labels)
+
+    # =====================================================
+    # CSV IMPORT
+    # =====================================================
 
     def import_csv_view(self, request):
 
@@ -396,6 +538,7 @@ class ItemAdmin(admin.ModelAdmin):
                 )
 
         else:
+
             form = ItemCSVImportForm()
 
         return TemplateResponse(
@@ -406,9 +549,15 @@ class ItemAdmin(admin.ModelAdmin):
             },
         )
 
+    # =====================================================
+    # CSV TEMPLATE
+    # =====================================================
+
     def import_template_view(self, request):
 
-        response = HttpResponse(content_type="text/csv")
+        response = HttpResponse(
+            content_type="text/csv"
+        )
 
         response["Content-Disposition"] = (
             'attachment; filename="items_import_template.csv"'
@@ -443,9 +592,9 @@ class ItemAdmin(admin.ModelAdmin):
         return response
 
 
-# ---------------------------------------------------
+# =========================================================
 # INVENTORY BALANCE ADMIN
-# ---------------------------------------------------
+# =========================================================
 
 @admin.register(InventoryBalance)
 class InventoryBalanceAdmin(admin.ModelAdmin):
@@ -469,9 +618,9 @@ class InventoryBalanceAdmin(admin.ModelAdmin):
     )
 
 
-# ---------------------------------------------------
+# =========================================================
 # BIN ADMIN
-# ---------------------------------------------------
+# =========================================================
 
 @admin.register(Bin)
 class BinAdmin(admin.ModelAdmin):
@@ -490,15 +639,23 @@ class BinAdmin(admin.ModelAdmin):
 
     actions = ["print_bin_barcodes_pdf"]
 
-    @admin.action(description="Print barcode labels (PDF) for selected bins")
-    def print_bin_barcodes_pdf(self, request, queryset):
+    @admin.action(
+        description="Print barcode labels (PDF) for selected bins"
+    )
+    def print_bin_barcodes_pdf(
+        self,
+        request,
+        queryset,
+    ):
 
         if not REPORTLAB_OK:
+
             self.message_user(
                 request,
                 "Barcode printing requires reportlab.",
                 level=messages.ERROR,
             )
+
             return None
 
         labels = []
@@ -516,15 +673,21 @@ class BinAdmin(admin.ModelAdmin):
             })
 
         if not labels:
+
             self.message_user(
                 request,
                 "No bins selected.",
                 level=messages.WARNING,
             )
+
             return None
 
         return build_labels_pdf(labels)
 
+
+# =========================================================
+# SOURCE ADMIN
+# =========================================================
 
 @admin.register(Source)
 class SourceAdmin(admin.ModelAdmin):
@@ -538,9 +701,9 @@ class SourceAdmin(admin.ModelAdmin):
     search_fields = ("name",)
 
 
-# ---------------------------------------------------
-# MOVEMENTS ADMIN
-# ---------------------------------------------------
+# =========================================================
+# INVENTORY MOVEMENTS ADMIN
+# =========================================================
 
 @admin.register(InventoryMovement)
 class InventoryMovementAdmin(admin.ModelAdmin):
@@ -566,17 +729,29 @@ class InventoryMovementAdmin(admin.ModelAdmin):
     )
 
     def item_display(self, obj):
-        return obj.item.sku if obj.item else "Missing Item"
+        return (
+            obj.item.sku
+            if obj.item
+            else "Missing Item"
+        )
 
     item_display.short_description = "Item"
 
     def from_bin_display(self, obj):
-        return str(obj.from_bin) if obj.from_bin else "-"
+        return (
+            str(obj.from_bin)
+            if obj.from_bin
+            else "-"
+        )
 
     from_bin_display.short_description = "From Bin"
 
     def to_bin_display(self, obj):
-        return str(obj.to_bin) if obj.to_bin else "-"
+        return (
+            str(obj.to_bin)
+            if obj.to_bin
+            else "-"
+        )
 
     to_bin_display.short_description = "To Bin"
 
@@ -590,9 +765,9 @@ class InventoryMovementAdmin(admin.ModelAdmin):
     user_display.short_description = "User"
 
 
-# ---------------------------------------------------
+# =========================================================
 # CUSTOM ADMIN
-# ---------------------------------------------------
+# =========================================================
 
 class CustomAdminSite(admin.AdminSite):
 
@@ -614,7 +789,10 @@ class CustomAdminSite(admin.AdminSite):
         return custom_urls + urls
 
     @staff_member_required
-    def unassigned_inventory_view(self, request):
+    def unassigned_inventory_view(
+        self,
+        request,
+    ):
 
         items_qs = Item.objects.annotate(
             total=Sum("balances__quantity")
