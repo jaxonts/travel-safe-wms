@@ -215,7 +215,6 @@ class ItemAdmin(admin.ModelAdmin):
         "admin/item_changelist_with_import.html"
     )
 
-    # PERFORMANCE
     list_per_page = 25
     show_full_result_count = False
 
@@ -438,6 +437,10 @@ class ItemAdmin(admin.ModelAdmin):
 
         return custom + urls
 
+    # =====================================================
+    # ITEM BARCODE VIEW
+    # =====================================================
+
     def item_barcode_view(
         self,
         request,
@@ -471,6 +474,112 @@ class ItemAdmin(admin.ModelAdmin):
         }]
 
         return build_labels_pdf(labels)
+
+    # =====================================================
+    # CSV IMPORT
+    # =====================================================
+
+    def import_csv_view(self, request):
+
+        if request.method == "POST":
+
+            form = ItemCSVImportForm(
+                request.POST,
+                request.FILES,
+            )
+
+            if form.is_valid():
+
+                csv_file = form.cleaned_data["csv_file"]
+
+                set_qty = form.cleaned_data.get(
+                    "set_quantities",
+                    False,
+                )
+
+                result = import_items_from_csv(
+                    file_obj=csv_file,
+                    set_quantities=set_qty,
+                    user=request.user,
+                )
+
+                self.message_user(
+                    request,
+                    (
+                        f"Import complete. "
+                        f"Created: {result['created']}, "
+                        f"Updated: {result['updated']}, "
+                        f"Errors: {len(result['errors'])}"
+                    ),
+                    level=(
+                        messages.SUCCESS
+                        if not result["errors"]
+                        else messages.WARNING
+                    ),
+                )
+
+                return TemplateResponse(
+                    request,
+                    "admin/item_csv_import.html",
+                    {
+                        "form": form,
+                        "result": result,
+                    },
+                )
+
+        else:
+
+            form = ItemCSVImportForm()
+
+        return TemplateResponse(
+            request,
+            "admin/item_csv_import.html",
+            {
+                "form": form,
+            },
+        )
+
+    # =====================================================
+    # CSV TEMPLATE
+    # =====================================================
+
+    def import_template_view(self, request):
+
+        response = HttpResponse(
+            content_type="text/csv"
+        )
+
+        response["Content-Disposition"] = (
+            'attachment; filename="items_import_template.csv"'
+        )
+
+        writer = csv.writer(response)
+
+        writer.writerow([
+            "sku",
+            "name",
+            "price",
+            "condition",
+            "description",
+            "image_url",
+            "listing_url",
+            "source",
+            "starting_qty",
+        ])
+
+        writer.writerow([
+            "SKU-123",
+            "Example Item",
+            "19.99",
+            "New",
+            "Example description",
+            "",
+            "",
+            "Manual",
+            "0",
+        ])
+
+        return response
 
 
 # =========================================================
