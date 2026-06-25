@@ -49,34 +49,37 @@ def _centered_text(c, text, y, font_name="Helvetica", font_size=6):
 
 def _draw_label_page(c, title: str, value: str, subtitle: str = ""):
     barcode_val = (value or "").strip()
-    title = (title or "")[:24]
-    subtitle = (subtitle or "")[:18]
 
-    _centered_text(c, title, LABEL_HEIGHT - 5 * mm, "Helvetica-Bold", 4.5)
+    # SKU / bin code above barcode
+    _centered_text(
+        c,
+        barcode_val,
+        LABEL_HEIGHT - 5 * mm,
+        "Helvetica-Bold",
+        6,
+    )
 
-    if subtitle:
-        _centered_text(c, subtitle, LABEL_HEIGHT - 8 * mm, "Helvetica", 4)
-
-    max_barcode_width = LABEL_WIDTH - (4 * mm)
-
-    bar_width = 0.42 * mm
+    # Bigger barcode with wider bars for better scanning
+    max_barcode_width = LABEL_WIDTH - (3 * mm)
+    bar_width = 0.50 * mm
 
     barcode = code128.Code128(
         barcode_val,
-        barHeight=15 * mm,
+        barHeight=18 * mm,
         barWidth=bar_width,
     )
 
-    while barcode.width > max_barcode_width and bar_width > 0.20 * mm:
+    # Auto-shrink only if the barcode is too wide for the label
+    while barcode.width > max_barcode_width and bar_width > 0.28 * mm:
         bar_width -= 0.02 * mm
         barcode = code128.Code128(
             barcode_val,
-            barHeight=15 * mm,
+            barHeight=18 * mm,
             barWidth=bar_width,
         )
 
     bx = (LABEL_WIDTH - barcode.width) / 2
-    by = 7 * mm
+    by = 5 * mm
 
     barcode.drawOn(c, bx, by)
 
