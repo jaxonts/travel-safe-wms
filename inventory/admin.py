@@ -321,7 +321,7 @@ class ItemAdmin(admin.ModelAdmin):
 
         labels = [{
             "title": obj.name,
-            "value": obj.sku,
+            "value": f"ITEM-{obj.id}",
             "subtitle": "ITEM SKU",
             "filename": f"item-{obj.sku}-barcode.pdf",
         }]
@@ -470,15 +470,12 @@ class BinAdmin(admin.ModelAdmin):
             )
             return None
 
-        labels = []
-
-        for b in queryset.order_by("location__name", "code"):
-            labels.append({
-                "title": f"{b.location.name}",
-                "value": b.code,
-                "subtitle": "BIN",
-                "filename": "bin-barcodes.pdf",
-            })
+       labels = [{
+    "title": obj.sku,
+    "value": obj.sku,
+    "subtitle": "ITEM",
+    "filename": f"item-{obj.sku}-barcode.pdf",
+}]
 
         if not labels:
             self.message_user(
