@@ -50,7 +50,6 @@ def _centered_text(c, text, y, font_name="Helvetica", font_size=6):
 def _draw_label_page(c, title: str, value: str, subtitle: str = ""):
     barcode_val = (value or "").strip()
 
-    # SKU / bin code above barcode
     _centered_text(
         c,
         barcode_val,
@@ -59,7 +58,6 @@ def _draw_label_page(c, title: str, value: str, subtitle: str = ""):
         6,
     )
 
-    # Bigger barcode with wider bars for better scanning
     max_barcode_width = LABEL_WIDTH - (3 * mm)
     bar_width = 0.50 * mm
 
@@ -69,7 +67,6 @@ def _draw_label_page(c, title: str, value: str, subtitle: str = ""):
         barWidth=bar_width,
     )
 
-    # Auto-shrink only if the barcode is too wide for the label
     while barcode.width > max_barcode_width and bar_width > 0.28 * mm:
         bar_width -= 0.02 * mm
         barcode = code128.Code128(
@@ -260,9 +257,9 @@ class ItemAdmin(admin.ModelAdmin):
 
         for obj in queryset.order_by("sku"):
             labels.append({
-                "title": obj.name,
+                "title": obj.sku,
                 "value": obj.sku,
-                "subtitle": "ITEM SKU",
+                "subtitle": "ITEM",
                 "filename": "item-barcodes.pdf",
             })
 
@@ -320,9 +317,9 @@ class ItemAdmin(admin.ModelAdmin):
             )
 
         labels = [{
-            "title": obj.name,
-            "value": f"ITEM-{obj.id}",
-            "subtitle": "ITEM SKU",
+            "title": obj.sku,
+            "value": obj.sku,
+            "subtitle": "ITEM",
             "filename": f"item-{obj.sku}-barcode.pdf",
         }]
 
@@ -403,8 +400,6 @@ class ItemAdmin(admin.ModelAdmin):
         ])
 
         return response
-
-
 @admin.register(InventoryBalance)
 class InventoryBalanceAdmin(admin.ModelAdmin):
     list_display = (
@@ -460,7 +455,7 @@ class BinAdmin(admin.ModelAdmin):
         qs = super().get_queryset(request)
         return qs.select_related("location")
 
-        @admin.action(description="Print barcode labels (PDF) for selected bins")
+    @admin.action(description="Print barcode labels (PDF) for selected bins")
     def print_bin_barcodes_pdf(self, request, queryset):
         if not REPORTLAB_OK:
             self.message_user(
