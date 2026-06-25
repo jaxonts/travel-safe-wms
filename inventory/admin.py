@@ -460,7 +460,7 @@ class BinAdmin(admin.ModelAdmin):
         qs = super().get_queryset(request)
         return qs.select_related("location")
 
-    @admin.action(description="Print barcode labels (PDF) for selected bins")
+        @admin.action(description="Print barcode labels (PDF) for selected bins")
     def print_bin_barcodes_pdf(self, request, queryset):
         if not REPORTLAB_OK:
             self.message_user(
@@ -470,12 +470,15 @@ class BinAdmin(admin.ModelAdmin):
             )
             return None
 
-       labels = [{
-    "title": obj.sku,
-    "value": obj.sku,
-    "subtitle": "ITEM",
-    "filename": f"item-{obj.sku}-barcode.pdf",
-}]
+        labels = []
+
+        for b in queryset.order_by("location__name", "code"):
+            labels.append({
+                "title": b.code,
+                "value": b.code,
+                "subtitle": "BIN",
+                "filename": "bin-barcodes.pdf",
+            })
 
         if not labels:
             self.message_user(
