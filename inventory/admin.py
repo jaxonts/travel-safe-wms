@@ -33,6 +33,15 @@ LABEL_WIDTH = 50 * mm
 LABEL_HEIGHT = 30 * mm
 
 
+def _barcode_value(value: str) -> str:
+    value = (value or "").strip()
+
+    if "#" in value:
+        return value.split("#")[-1].strip()
+
+    return value
+
+
 def _barcode_pdf_response(filename: str) -> HttpResponse:
     response = HttpResponse(content_type="application/pdf")
     response["Content-Disposition"] = f'inline; filename="{filename}"'
@@ -48,7 +57,7 @@ def _centered_text(c, text, y, font_name="Helvetica", font_size=6):
 
 
 def _draw_label_page(c, title: str, value: str, subtitle: str = ""):
-    barcode_val = (value or "").strip()
+    barcode_val = _barcode_value(value)
 
     _centered_text(
         c,
@@ -400,6 +409,8 @@ class ItemAdmin(admin.ModelAdmin):
         ])
 
         return response
+
+
 @admin.register(InventoryBalance)
 class InventoryBalanceAdmin(admin.ModelAdmin):
     list_display = (
