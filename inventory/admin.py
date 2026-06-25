@@ -49,26 +49,38 @@ def _centered_text(c, text, y, font_name="Helvetica", font_size=6):
 
 def _draw_label_page(c, title: str, value: str, subtitle: str = ""):
     barcode_val = (value or "").strip()
-    title = (title or "")[:28]
+    title = (title or "")[:24]
     subtitle = (subtitle or "")[:18]
 
-    _centered_text(c, title, LABEL_HEIGHT - 5 * mm, "Helvetica-Bold", 5)
+    _centered_text(c, title, LABEL_HEIGHT - 5 * mm, "Helvetica-Bold", 4.5)
 
     if subtitle:
         _centered_text(c, subtitle, LABEL_HEIGHT - 8 * mm, "Helvetica", 4)
 
+    max_barcode_width = LABEL_WIDTH - (4 * mm)
+
+    bar_width = 0.42 * mm
+
     barcode = code128.Code128(
         barcode_val,
-        barHeight=13 * mm,
-        barWidth=0.42 * mm,
+        barHeight=15 * mm,
+        barWidth=bar_width,
     )
 
+    while barcode.width > max_barcode_width and bar_width > 0.20 * mm:
+        bar_width -= 0.02 * mm
+        barcode = code128.Code128(
+            barcode_val,
+            barHeight=15 * mm,
+            barWidth=bar_width,
+        )
+
     bx = (LABEL_WIDTH - barcode.width) / 2
-    by = 8 * mm
+    by = 7 * mm
 
     barcode.drawOn(c, bx, by)
 
-    _centered_text(c, barcode_val, 4 * mm, "Helvetica", 5)
+    _centered_text(c, barcode_val, 3.5 * mm, "Helvetica", 4.5)
 
 
 def build_labels_pdf(items):
