@@ -33,6 +33,7 @@ try:
     from reportlab.graphics.barcode import code128
 except Exception:
     REPORTLAB_OK = False
+    mm = 1
 
 
 # ---------------------------------------------------------
@@ -232,7 +233,20 @@ class InventoryBalanceInline(admin.TabularInline):
         "bin__code",
     )
 
-    show_change_link = True
+    # Disabling the change link reduces extra admin URL and
+    # permission work for every balance row on the Item page.
+    show_change_link = False
+
+    def get_queryset(self, request):
+        """
+        Load each balance's Bin and Location in the same query.
+        """
+        queryset = super().get_queryset(request)
+
+        return queryset.select_related(
+            "bin",
+            "bin__location",
+        )
 
 
 # ---------------------------------------------------------
@@ -284,15 +298,35 @@ class ItemAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         """
-        Load the Item page efficiently.
+        Use the full optimized queryset only on the Items list page.
 
-        Quantity totals are calculated in the main query rather
-        than running a separate aggregate query for every item.
-
-        Inventory balances, bins, and bin locations are prefetched
-        for the bin display column.
+        Opening an individual Item does not need every balance
+        prefetched or the total quantity aggregation. Skipping those
+        operations makes the Item change page much faster.
         """
         queryset = super().get_queryset(request)
+
+        queryset = queryset.select_related(
+            "current_bin",
+            "current_bin__location",
+        )
+
+        resolver_match = getattr(
+            request,
+            "resolver_match",
+            None,
+        )
+
+        url_name = getattr(
+            resolver_match,
+            "url_name",
+            "",
+        ) or ""
+
+        # Only perform the expensive annotation and balance prefetch
+        # when displaying the main Items list.
+        if url_name != "inventory_item_changelist":
+            return queryset
 
         balance_queryset = (
             InventoryBalance.objects
@@ -308,10 +342,6 @@ class ItemAdmin(admin.ModelAdmin):
 
         return (
             queryset
-            .select_related(
-                "current_bin",
-                "current_bin__location",
-            )
             .annotate(
                 calculated_total_qty=Sum(
                     "balances__quantity",
@@ -332,15 +362,31 @@ class ItemAdmin(admin.ModelAdmin):
     )
     def total_qty(self, obj):
         """
-        Return the total quantity already calculated by
-        get_queryset().
+        Return the total quantity calculated on the Items list page.
+
+        The fallback is included for any view that calls this method
+        without the calculated annotation.
         """
-        return obj.calculated_total_qty or 0
+        calculated_total = getattr(
+            obj,
+            "calculated_total_qty",
+            None,
+        )
+
+        if calculated_total is not None:
+            return calculated_total
+
+        return (
+            obj.balances.aggregate(
+                total=Sum("quantity"),
+            )["total"]
+            or 0
+        )
 
     def _primary_bin_for_item(self, obj):
         """
         Find the first positive inventory balance using the balances
-        that were already loaded by get_queryset().
+        that were already loaded by the Items list queryset.
         """
         balances = getattr(
             obj,
@@ -734,7 +780,7 @@ class InventoryBalanceAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         """
-        Load the related Item, Bin, and Source in one query.
+        Load the related Item, Bin, and Location in one query.
         """
         queryset = super().get_queryset(request)
 
