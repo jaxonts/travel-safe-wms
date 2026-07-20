@@ -12,7 +12,10 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-CHANGE_THIS_SECRET_KEY")
-DEBUG = os.getenv("DEBUG", "True").lower() in ["true", "1"]
+DEBUG = os.getenv(
+    "DEBUG",
+    "False" if os.getenv("RENDER") else "True",
+).lower() in ["true", "1", "yes", "on"]
 
 ALLOWED_HOSTS = [
     "127.0.0.1",
@@ -80,6 +83,8 @@ WSGI_APPLICATION = "wms_project.wsgi.application"
 DATABASES = {
     "default": dj_database_url.config(
         default=os.getenv("DATABASE_URL"),
+        conn_max_age=600,
+        conn_health_checks=True,
     )
 }
 
