@@ -185,8 +185,14 @@ JAZZMIN_SETTINGS = {
         "inventory": [
             {
                 "name": "Unassigned Inventory",
-                "url": "/admin/unassigned-inventory/",
+                "url": "/unassigned-inventory/",
                 "icon": "fas fa-box-open",
+                "permissions": ["inventory.view_item"],
+            },
+            {
+                "name": "Duplicate Inventory",
+                "url": "/duplicate-inventory/",
+                "icon": "fas fa-copy",
                 "permissions": ["inventory.view_item"],
             },
         ]

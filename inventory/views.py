@@ -259,3 +259,97 @@ def ebay_active_inventory(request):
             },
             status=500,
         )
+
+
+# =====================================================
+# DUPLICATE INVENTORY VIEW (ADMIN)
+# =====================================================
+
+@staff_member_required
+def duplicate_inventory_view(request):
+    """
+    Review possible duplicate WMS items.
+
+    Shows:
+    1. Exact duplicate full SKUs
+    2. Different SKUs that share the same value after the final #
+
+    Nothing is automatically deleted or merged.
+    """
+
+    items = (
+        Item.objects
+        .all()
+        .order_by("sku", "id")
+    )
+
+    exact_sku_map = {}
+    suffix_map = {}
+
+    for item in items:
+        sku = (item.sku or "").strip()
+
+        if not sku:
+            continue
+
+        # Exact full SKU grouping
+        exact_sku_map.setdefault(sku, []).append(item)
+
+        # Use stored suffix if available, otherwise calculate it
+        suffix = (getattr(item, "sku_suffix", "") or "").strip()
+
+        if not suffix and "#" in sku:
+            suffix = sku.rsplit("#", 1)[1].strip()
+
+        if suffix:
+            suffix_map.setdefault(suffix, []).append(item)
+
+    exact_sku_groups = []
+
+    for sku, grouped_items in exact_sku_map.items():
+        if len(grouped_items) > 1:
+            exact_sku_groups.append({
+                "value": sku,
+                "items": grouped_items,
+            })
+
+    suffix_groups = []
+
+    for suffix, grouped_items in suffix_map.items():
+        if len(grouped_items) <= 1:
+            continue
+
+        unique_skus = {
+            (item.sku or "").strip()
+            for item in grouped_items
+        }
+
+        # If every SKU is identical, it is already shown in
+        # the Exact Duplicate SKU section.
+        if len(unique_skus) <= 1:
+            continue
+
+        suffix_groups.append({
+            "value": suffix,
+            "items": grouped_items,
+        })
+
+    exact_sku_groups.sort(
+        key=lambda group: group["value"]
+    )
+
+    suffix_groups.sort(
+        key=lambda group: group["value"]
+    )
+
+    return render(
+        request,
+        "admin/duplicate_inventory.html",
+        {
+            "exact_sku_groups": exact_sku_groups,
+            "suffix_groups": suffix_groups,
+            "exact_group_count": len(exact_sku_groups),
+            "suffix_group_count": len(suffix_groups),
+            "title": "Duplicate Inventory",
+        },
+    )

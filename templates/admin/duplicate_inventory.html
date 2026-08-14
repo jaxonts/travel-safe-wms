@@ -1,0 +1,236 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+
+<style>
+  .duplicate-summary {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 25px;
+  }
+
+  .duplicate-card {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 15px 20px;
+    min-width: 220px;
+  }
+
+  .duplicate-card strong {
+    font-size: 24px;
+    display: block;
+  }
+
+  .duplicate-group {
+    margin-bottom: 30px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    overflow: hidden;
+  }
+
+  .duplicate-group-title {
+    background: #f4f4f4;
+    padding: 12px 15px;
+    font-weight: bold;
+  }
+
+  .duplicate-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .duplicate-table th,
+  .duplicate-table td {
+    padding: 9px 12px;
+    border-top: 1px solid #ddd;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .duplicate-table th {
+    background: #fafafa;
+  }
+
+  .duplicate-warning {
+    background: #fff3cd;
+    border: 1px solid #ffe69c;
+    padding: 12px 15px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+  }
+</style>
+
+
+<h1>Duplicate Inventory</h1>
+
+<div class="duplicate-warning">
+  <strong>Review only:</strong>
+  Nothing on this page is automatically deleted or merged.
+  Exact duplicate SKUs and items sharing the same number after
+  the final # are shown for review.
+</div>
+
+
+<div class="duplicate-summary">
+
+  <div class="duplicate-card">
+    <strong>{{ exact_group_count }}</strong>
+    Exact Duplicate SKU Groups
+  </div>
+
+  <div class="duplicate-card">
+    <strong>{{ suffix_group_count }}</strong>
+    Shared # Number Groups
+  </div>
+
+</div>
+
+
+<h2>Exact Duplicate SKUs</h2>
+
+{% for group in exact_sku_groups %}
+
+  <div class="duplicate-group">
+
+    <div class="duplicate-group-title">
+      SKU: {{ group.value }}
+      — {{ group.items|length }} records
+    </div>
+
+    <table class="duplicate-table">
+
+      <thead>
+        <tr>
+          <th>WMS ID</th>
+          <th>SKU</th>
+          <th>eBay Item Number</th>
+          <th>Name</th>
+          <th>Source</th>
+          <th>Open</th>
+        </tr>
+      </thead>
+
+      <tbody>
+
+        {% for item in group.items %}
+
+          <tr>
+            <td>{{ item.id }}</td>
+
+            <td>
+              {{ item.sku|default:"-" }}
+            </td>
+
+            <td>
+              {{ item.ebay_item_number|default:"-" }}
+            </td>
+
+            <td>
+              {{ item.name }}
+            </td>
+
+            <td>
+              {{ item.source }}
+            </td>
+
+            <td>
+              <a href="{% url 'admin:inventory_item_change' item.id %}">
+                Open Item
+              </a>
+            </td>
+          </tr>
+
+        {% endfor %}
+
+      </tbody>
+
+    </table>
+
+  </div>
+
+{% empty %}
+
+  <p>No exact duplicate SKUs found.</p>
+
+{% endfor %}
+
+
+
+<h2>Same Number After #</h2>
+
+<p>
+  These are different SKU strings that share the same identifier
+  after the final #. These may be legitimate related listings or
+  old duplicates that need review.
+</p>
+
+
+{% for group in suffix_groups %}
+
+  <div class="duplicate-group">
+
+    <div class="duplicate-group-title">
+      #{{ group.value }}
+      — {{ group.items|length }} records
+    </div>
+
+    <table class="duplicate-table">
+
+      <thead>
+        <tr>
+          <th>WMS ID</th>
+          <th>SKU</th>
+          <th>eBay Item Number</th>
+          <th>Name</th>
+          <th>Source</th>
+          <th>Open</th>
+        </tr>
+      </thead>
+
+      <tbody>
+
+        {% for item in group.items %}
+
+          <tr>
+            <td>{{ item.id }}</td>
+
+            <td>
+              {{ item.sku|default:"-" }}
+            </td>
+
+            <td>
+              {{ item.ebay_item_number|default:"-" }}
+            </td>
+
+            <td>
+              {{ item.name }}
+            </td>
+
+            <td>
+              {{ item.source }}
+            </td>
+
+            <td>
+              <a href="{% url 'admin:inventory_item_change' item.id %}">
+                Open Item
+              </a>
+            </td>
+          </tr>
+
+        {% endfor %}
+
+      </tbody>
+
+    </table>
+
+  </div>
+
+{% empty %}
+
+  <p>No shared # identifiers found.</p>
+
+{% endfor %}
+
+{% endblock %}

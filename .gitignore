@@ -31,3 +31,7 @@ venv/
 # --- Virtual envs anywhere (some people keep them nested) ---
 **/env/
 **/venv/
+*.before_*
+local_wms_test.sqlite3
+wms_project/settings_local_test.py
+.env.before_local_test
