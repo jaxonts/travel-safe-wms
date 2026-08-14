@@ -47,9 +47,29 @@ class Item(models.Model):
 
     name = models.CharField(max_length=255)
 
-    # ✅ UPDATED: allow blank so SKU can be auto-generated
-    # NOTE: unique fields with blank=True can still be empty; using null=True avoids unique collisions on empty string.
-    sku = models.CharField(max_length=100, unique=True, null=True, blank=True)
+    # SKU is intentionally NOT unique.
+    # Multiple legitimate eBay listings may share the same SKU.
+    sku = models.CharField(max_length=100, null=True, blank=True)
+
+    # Permanent unique identity for an eBay listing.
+    # Example: 226736736244
+    ebay_item_number = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        unique=True,
+    )
+
+    # Number after the final # in the SKU.
+    # Example: TSWJ114P91A12#1711 -> 1711
+    # This is useful for searching/fallback matching but is NOT unique.
+    sku_suffix = models.CharField(
+        max_length=100,
+        blank=True,
+        default="",
+        db_index=True,
+        editable=False,
+    )
 
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     description = models.TextField(blank=True)
@@ -108,9 +128,20 @@ class Item(models.Model):
         raise RuntimeError("Could not generate a unique SKU after many attempts.")
 
     def save(self, *args, **kwargs):
-        # ✅ Auto-generate SKU if not provided
+        # Auto-generate a SKU for manually created Items if none is provided.
         if not self.sku:
             self.sku = Item.generate_unique_sku(prefix="TSW", digits=6)
+
+        self.sku = (self.sku or "").strip()
+
+        if "#" in self.sku:
+            self.sku_suffix = self.sku.rsplit("#", 1)[1].strip()
+        else:
+            self.sku_suffix = ""
+
+        if self.ebay_item_number:
+            self.ebay_item_number = str(self.ebay_item_number).strip()
+
         super().save(*args, **kwargs)
 
     class Meta:
