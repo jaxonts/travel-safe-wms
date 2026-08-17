@@ -331,6 +331,15 @@ def import_items_from_csv(file_obj, set_quantities: bool, user=None):
                 if not sku:
                     continue
 
+                # Normalize whitespace immediately after the final #.
+                # Examples:
+                #   TSWRVABA3#4596   -> TSWRVABA3#4596
+                #   TSWRVABA3# 4596  -> TSWRVABA3#4596
+                #   TSWRVABA3#   4596 -> TSWRVABA3#4596
+                if "#" in sku:
+                    sku_prefix, sku_number = sku.rsplit("#", 1)
+                    sku = f"{sku_prefix.rstrip()}#{sku_number.strip()}"
+
                 sku_suffix = _extract_sku_suffix(sku)
                 ebay_item_number = _find_ebay_item_number(clean_row)
 
