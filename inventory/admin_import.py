@@ -250,14 +250,28 @@ def _find_existing_item(sku: str, sku_suffix: str, ebay_item_number: str):
     # 3. Final # suffix only when unique
     # -------------------------------------------------
     if sku_suffix:
-        suffix_matches = Item.objects.filter(
-            sku__endswith=f"#{sku_suffix}"
+        # Match both current "#7883" and legacy "# 7883" formatting.
+        suffix_candidates = Item.objects.filter(
+            sku__contains="#"
         ).order_by("id")
 
-        suffix_count = suffix_matches.count()
+        suffix_matches = []
+
+        for candidate in suffix_candidates:
+            candidate_sku = (candidate.sku or "").strip()
+
+            if "#" not in candidate_sku:
+                continue
+
+            candidate_suffix = candidate_sku.rsplit("#", 1)[1].strip()
+
+            if candidate_suffix == sku_suffix:
+                suffix_matches.append(candidate)
+
+        suffix_count = len(suffix_matches)
 
         if suffix_count == 1:
-            return suffix_matches.first(), "sku_suffix"
+            return suffix_matches[0], "sku_suffix"
 
         if suffix_count > 1:
             raise ValueError(
