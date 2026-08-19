@@ -211,10 +211,10 @@ def _find_existing_item(sku: str, sku_suffix: str, ebay_item_number: str):
     Match priority:
 
     1. eBay Item Number
-    2. Number after final #
-    3. Exact SKU
+    2. Exact full SKU
+    3. Unique final # suffix only
 
-    We never silently choose between multiple matches.
+    Never guess when multiple WMS records share a suffix.
     """
 
     # -------------------------------------------------
@@ -229,12 +229,27 @@ def _find_existing_item(sku: str, sku_suffix: str, ebay_item_number: str):
             return obj, "ebay_item_number"
 
     # -------------------------------------------------
-    # 2. Match using the portion after #
+    # 2. Exact full SKU
+    # -------------------------------------------------
+    exact_matches = Item.objects.filter(
+        sku=sku
+    ).order_by("id")
+
+    exact_count = exact_matches.count()
+
+    if exact_count == 1:
+        return exact_matches.first(), "exact_sku"
+
+    if exact_count > 1:
+        raise ValueError(
+            f"Duplicate exact SKU {sku}: "
+            f"{exact_count} WMS records use this exact SKU."
+        )
+
+    # -------------------------------------------------
+    # 3. Final # suffix only when unique
     # -------------------------------------------------
     if sku_suffix:
-        # sku_suffix will be populated on newly saved records.
-        # sku__endswith also catches older records that existed
-        # before sku_suffix was added/backfilled.
         suffix_matches = Item.objects.filter(
             sku__endswith=f"#{sku_suffix}"
         ).order_by("id")
@@ -245,33 +260,11 @@ def _find_existing_item(sku: str, sku_suffix: str, ebay_item_number: str):
             return suffix_matches.first(), "sku_suffix"
 
         if suffix_count > 1:
-            # If suffix is shared, try exact SKU as a safe tiebreaker.
-            exact_matches = suffix_matches.filter(sku=sku)
-            exact_count = exact_matches.count()
-
-            if exact_count == 1:
-                return exact_matches.first(), "exact_sku"
-
             raise ValueError(
                 f"Ambiguous SKU suffix #{sku_suffix}: "
-                f"{suffix_count} WMS items already use this suffix. "
-                "An eBay Item Number is required to identify the correct listing."
+                f"{suffix_count} WMS items use this suffix. "
+                "An exact SKU or eBay Item Number is required."
             )
-
-    # -------------------------------------------------
-    # 3. Exact SKU fallback
-    # -------------------------------------------------
-    exact_matches = Item.objects.filter(sku=sku).order_by("id")
-    exact_count = exact_matches.count()
-
-    if exact_count == 1:
-        return exact_matches.first(), "exact_sku"
-
-    if exact_count > 1:
-        raise ValueError(
-            f"Ambiguous SKU {sku}: {exact_count} WMS items already use this SKU. "
-            "An eBay Item Number is required to identify the correct listing."
-        )
 
     return None, "new"
 
