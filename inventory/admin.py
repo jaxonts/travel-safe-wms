@@ -687,6 +687,15 @@ class ItemAdmin(admin.ModelAdmin):
                         else messages.WARNING
                     ),
                 )
+
+            # Show each row-level CSV import error under the summary.
+            for error in result.get("errors", []):
+                self.message_user(
+                    request,
+                    error,
+                    level=messages.ERROR,
+                )
+
         else:
             form = ItemCSVImportForm()
 
