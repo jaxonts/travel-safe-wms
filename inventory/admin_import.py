@@ -460,6 +460,15 @@ def import_items_from_csv(file_obj, set_quantities: bool, user=None):
                     # the SKU points to a different location, do not
                     # consolidate automatically.
                     #
+                    # Preserve existing physical bin when incoming SKU
+                    # does not contain a warehouse/bin location.
+                    if (
+                        sku_bin is None
+                        and len(stocked_balances) == 1
+                        and len(stocked_other_bins) == 1
+                    ):
+                        target_bin = stocked_other_bins[0].bin
+                        target_bal = stocked_other_bins[0]
                     # Physical split inventory must be reviewed manually.
                     # -------------------------------------------------
                     if len(stocked_balances) > 1 and stocked_other_bins:
