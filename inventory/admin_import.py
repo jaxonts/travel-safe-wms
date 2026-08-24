@@ -456,12 +456,8 @@ def import_items_from_csv(file_obj, set_quantities: bool, user=None):
                     # -------------------------------------------------
                     # MULTI-LOCATION SAFETY
                     # -------------------------------------------------
-                    # If stock already exists in more than one bin and
-                    # the SKU points to a different location, do not
-                    # consolidate automatically.
-                    #
-                    # Preserve existing physical bin when incoming SKU
-                    # does not contain a warehouse/bin location.
+                    # Preserve the existing physical bin when the incoming
+                    # SKU does not contain a warehouse/bin location.
                     if (
                         sku_bin is None
                         and len(stocked_balances) == 1
@@ -469,7 +465,59 @@ def import_items_from_csv(file_obj, set_quantities: bool, user=None):
                     ):
                         target_bin = stocked_other_bins[0].bin
                         target_bal = stocked_other_bins[0]
-                    # Physical split inventory must be reviewed manually.
+
+                    # If eBay now explicitly points to a physical bin and
+                    # WMS contains stock in exactly that bin plus DEFAULT,
+                    # DEFAULT is a stale balance left by the old importer.
+                    #
+                    # Example:
+                    #   eBay SKU -> ...AE2#17158
+                    #   WMS      -> AE2=1, DEFAULT=1
+                    #
+                    # Safely remove DEFAULT while preserving AE2.
+                    stale_default_bal = next(
+                        (
+                            bal
+                            for bal in stocked_other_bins
+                            if (bal.bin.code or "").strip().upper() == "DEFAULT"
+                        ),
+                        None,
+                    )
+
+                    if (
+                        sku_bin is not None
+                        and target_bal is not None
+                        and len(stocked_balances) == 2
+                        and len(stocked_other_bins) == 1
+                        and stale_default_bal is not None
+                    ):
+                        stale_qty = int(stale_default_bal.quantity or 0)
+
+                        if stale_qty > 0:
+                            InventoryMovement.objects.create(
+                                item=obj,
+                                from_bin=stale_default_bal.bin,
+                                to_bin=None,
+                                movement_type="ADJUST",
+                                quantity=stale_qty,
+                                note=(
+                                    "CSV import removed stale DEFAULT stock "
+                                    f"because SKU points to {target_bin.code}"
+                                ),
+                                performed_by=performed_by,
+                            )
+
+                            InventoryBalance.objects.filter(
+                                pk=stale_default_bal.pk
+                            ).update(
+                                quantity=0
+                            )
+
+                        stocked_balances = [target_bal]
+                        stocked_other_bins = []
+
+                    # Any genuine physical split inventory must still be
+                    # reviewed manually.
                     # -------------------------------------------------
                     if len(stocked_balances) > 1 and stocked_other_bins:
                         raise ValueError(
